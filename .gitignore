@@ -1,0 +1,13 @@
+# Hệ điều hành / trình soạn thảo
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.log
+node_modules/
+.vercel/
+.claude/settings.local.json
+# Bản tải về trùng lặp
+*(1).*
+* - Copy.*

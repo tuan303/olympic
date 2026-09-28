@@ -1,0 +1,70 @@
+[ĐÃ SỬA] Kéo co K3 tuần 3: file ghi 3A11 – 3A9 nhưng 3A9 thuộc bảng D; bảng C (3A0, 3A8, 3A11) còn thiếu đúng cặp 3A0 – 3A11 → sửa 3A9 thành 3A0.
+[ĐÃ SỬA] Kéo co K5 bán kết 2: file ghi "NHẤT B - NHẤT C" nhưng khối 5 chỉ có bảng A, B; theo điều lệ Bán kết 2 = Nhất B gặp Nhì A.
+[ĐÃ SỬA] Kéo co K6 tuần 1: file ghi "6B03 - 6A0" (thiếu số); bảng A (6B03, 6A01, 6A05, 6A06) còn thiếu đúng cặp 6B03 – 6A06.
+[ĐÃ SỬA] Kéo co K7 tuần 3: file ghi 7A03 – 7B01 (trùng tuần 2); bảng D còn thiếu đúng cặp 7A03 – 7A04.
+[THIẾU] bongro-k12 bảng A: chưa có trận 12L0 – 12L02
+[TRÙNG] bongro-k12 bảng A: 12L0 – 12S0 xuất hiện 2 lần
+[TRÙNG] keoco-k10 bảng RR: 10L01 – 10T0 xuất hiện 2 lần
+[TRÙNG] keoco-k10 bảng RR: 10L01 – 10T01 xuất hiện 2 lần
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10L01 – 10N01
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10L01 – 10N0
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10T0 – 10S
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10T0 – 10N0
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10T01 – 10S
+[THIẾU] keoco-k10 bảng RR: chưa có trận 10T01 – 10N01
+[TRÙNG] keoco-k10 bảng RR: 10S – 10N01 xuất hiện 2 lần
+[TRÙNG] keoco-k10 bảng RR: 10S – 10N0 xuất hiện 2 lần
+[TRÙNG] keoco-k10 bảng RR: 10N01 – 10N0 xuất hiện 2 lần
+[THIẾU] keoco-k11 bảng RR: chưa có trận 11N – 11L01
+[TRÙNG] keoco-k11 bảng RR: 11N – 11S xuất hiện 2 lần
+[TRÙNG] keoco-k11 bảng RR: 11L0 – 11L01 xuất hiện 2 lần
+[THIẾU] keoco-k11 bảng RR: chưa có trận 11L0 – 11S
+[SƠ ĐỒ] K3T4 (Đơn nam) (caulong-k3-don-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 18 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K3T4 (Đơn nữ) (caulong-k3-don-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 18 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K4T2 (Đơn nam) (caulong-k4-don-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 17 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K4T2 (Đơn nữ) (caulong-k4-don-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 17 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K5T5 (Đơn nam) (caulong-k5-don-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 15 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K5T5 (Đơn nữ) (caulong-k5-don-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 15 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K6T6 (caulong-k6-don-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K6T6 (caulong-k6-don-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K6T6 (caulong-k6-doi-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K6T6 (caulong-k6-doi-nu): không tìm thấy trận ứng với nút (6) — giữ theo số trận
+[SƠ ĐỒ] K6T6 (caulong-k6-doi-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K7T2 (caulong-k7-don-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K7T2 (caulong-k7-don-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K7T2 (caulong-k7-doi-nam): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[SƠ ĐỒ] K7T2 (caulong-k7-doi-nu): số trong ngoặc là số nút sơ đồ ≠ số trận → đã nối lại 3 tham chiếu theo sơ đồ
+[caulong] K8T3 dòng 10: số trận 3 trùng/lùi → đánh lại 6
+[caulong] K8T3 dòng 31: số trận 3 trùng/lùi → đánh lại 6
+[caulong] K8T3 dòng 51: số trận 3 trùng/lùi → đánh lại 6
+[caulong] K8T3 dòng 71: số trận 3 trùng/lùi → đánh lại 6
+[ĐÃ SỬA] Karate K5-KATA NAM-xong dòng 27: "11 - 12" → "5A2 KO ĐKY - 5A0 KO ĐKY"
+[ĐÃ SỬA] Karate K5-KATA NAM-xong dòng 31: "ko đky '(3) - 5BO Trần Đăng Tuấn" → "(3) - 5B0 Trần Đăng Tuấn"
+[ĐÃ SỬA] Karate K5-KATA NỮ-xong dòng 26: "17 - 5A7 NGUYỄN TUỆ ANH" → "5A1 KO ĐKY - 5A7 Nguyễn Tuệ Anh"
+[ĐÃ SỬA] Karate K5-KATA NỮ-xong dòng 27: "11 - 12 ( bỏ )" → "5A2 KO ĐKY - 5A0 KO ĐKY"
+[ĐÃ SỬA] Karate KHỐI 7(KATA CN NAM)-xong dòng 11: "2 - (6)" → "(2) - 6"
+[ĐÃ SỬA] Karate KHỐI 7(KATA CN NAM)-xong dòng 41: "(21) - 4" → "21 - (4)"
+[ĐÃ SỬA] Karate KHỐI 7-KATA CN NỮ-xong dòng 11: "2 - (6)" → "(2) - 6"
+[ĐÃ SỬA] Karate KHỐI 7-KATA CN NỮ-xong dòng 48: "(21) - 4" → "21 - (4)"
+[ĐÃ SỬA] Karate K8-KATA CN NAM-xong dòng 12: "(7) - 3" → "7 - (3)"
+[ĐÃ SỬA] Karate K8-KATA CN NỮ-xong dòng 12: "(7) - 3" → "7 - (3)"
+[ĐÃ SỬA] Karate K9 - KATA CN NAM - Xong dòng 9: "7 - (14)" → "7 - (3)"
+[ĐÃ SỬA] Karate K9 - KATA CN NAM - Xong dòng 40: "1 - (16)" → "(1) - 16"
+[ĐÃ SỬA] Karate K9 - KATA CN NAM - Xong dòng 42: "3 - (22)" → "(3) - 22"
+[ĐÃ SỬA] Karate K9 - KATA CN NỮ-Xong dòng 10: "7 - (14)" → "7 - (3)"
+[ĐÃ SỬA] Karate K9 - KATA CN NỮ-Xong dòng 43: "1 - (16)" → "(1) - 16"
+[ĐÃ SỬA] Karate K9 - KATA CN NỮ-Xong dòng 45: "3 - (22)" → "(3) - 22"
+[ĐÃ SỬA] Karate K11-KATA CN NỮ-xong dòng 9: "11L - 11L01 2 lớp ko đky" → "11L0 KO ĐKY - 11L01 KO ĐKY"
+[NHÁNH] karate-k2-kata-nam: có 5 trận không dẫn tới đâu: A4, A7, B1, B3, CK
+[NHÁNH] karate-k2-kata-nu: có 4 trận không dẫn tới đâu: A2, A7, B1, CK
+[NHÁNH] karate-k3-kata-nu: có 2 trận không dẫn tới đâu: B5, CK
+[NHÁNH] karate-k4-kata-nam: có 3 trận không dẫn tới đâu: A3, B1, CK
+[NHÁNH] karate-k5-kata-nam: có 7 trận không dẫn tới đâu: A1, B1, B2, B4, B5, B7, CK
+[NHÁNH] karate-k5-kata-nu: có 2 trận không dẫn tới đâu: B2, CK
+[NHÁNH] karate-k10-kata-nam: có 7 trận không dẫn tới đâu: A1, A4, A5, B7, B10, B11, CK
+[NHÁNH] karate-k10-kata-nu: có 3 trận không dẫn tới đâu: A1, A3, CK
+[NHÁNH] karate-k11-kata-nam: có 5 trận không dẫn tới đâu: A1, A3, B5, B7, CK
+[NHÁNH] karate-k11-kata-nu: có 6 trận không dẫn tới đâu: A2, A3, B5, B6, B7, CK
+[NHÁNH] karate-k12-kata-nam: có 10 trận không dẫn tới đâu: A1, A2, A3, A4, A7, B2, B3, B5, B7, CK
+[NHÁNH] karate-k12-kata-nu: có 11 trận không dẫn tới đâu: A1, A2, A4, A5, A6, B1, B2, B4, B5, B6, CK
+[ĐIỀU LỆ] File "Điều lệ Bóng đá THCS - Olympic 2026-2027.xlsx" có tiêu đề ghi "TIỂU HỌC" nhưng nội dung là cấp THCS — web hiển thị tiêu đề cấp THCS.

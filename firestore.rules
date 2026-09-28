@@ -1,0 +1,72 @@
+// ============================================================
+//  FIRESTORE SECURITY RULES — Olympic Thể thao học sinh NSHM 2026–2027
+//  Project: olympic-nshm-758ac   (KIỂM TRA ĐÚNG PROJECT TRƯỚC KHI DÁN!)
+// ============================================================
+//  ⚠️ FILE NÀY KHÔNG TỰ ÁP DỤNG KHI PUSH LÊN GITHUB/VERCEL.
+//  Dán thủ công: console.firebase.google.com → project olympic-nshm-758ac
+//     → Firestore Database → tab "Rules" → dán đè toàn bộ → "Publish".
+//
+//  - Ai cũng ĐỌC được lịch/kết quả (học sinh, phụ huynh không cần đăng nhập).
+//  - Chỉ tài khoản @hoangmaistarschool.edu.vn có trong collection "admins"
+//    (hoặc quản trị cao nhất bên dưới) mới SỬA được, và chỉ sửa môn được giao.
+// ============================================================
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email is string;
+    }
+    function email() {
+      return request.auth.token.email.lower();
+    }
+    function schoolAccount() {
+      return signedIn() && email().matches('.*@hoangmaistarschool[.]edu[.]vn');
+    }
+    // Quản trị cao nhất — phải khớp SUPER_ADMINS trong js/config.js
+    function isSuper() {
+      return schoolAccount() && email() in ['tuantm@hoangmaistarschool.edu.vn', 'it@hoangmaistarschool.edu.vn'];
+    }
+    function adminDoc() {
+      return get(/databases/$(database)/documents/admins/$(email()));
+    }
+    function isAdmin() {
+      return schoolAccount() && exists(/databases/$(database)/documents/admins/$(email()));
+    }
+    function isAllAdmin() {
+      return isSuper() || (isAdmin() && adminDoc().data.get('all', false) == true);
+    }
+    function canSport(sport) {
+      return isAllAdmin() || (isAdmin() && adminDoc().data.get('sports', {}).get(sport, false) == true);
+    }
+
+    // Dữ liệu giải: olympic/config, olympic/rules, olympic/sport_<môn>
+    match /olympic/{docId} {
+      allow read: if true;
+      // config (thông báo, cài đặt) và điều lệ: quản trị toàn giải
+      allow write: if (docId == 'config' || docId == 'rules') && isAllAdmin();
+      // lịch & kết quả từng môn: người được giao môn đó
+      allow create, delete: if docId.matches('sport_.*') && isSuper();
+      allow update: if docId.matches('sport_.*') && canSport(docId.split('_')[1]);
+    }
+
+    // Danh sách quản trị: mỗi người đọc được quyền của chính mình; chỉ quản trị cao nhất cấp/thu hồi
+    match /admins/{adminEmail} {
+      allow read: if isSuper() || (schoolAccount() && adminEmail == email());
+      allow write: if isSuper();
+    }
+
+    // Nhật ký thay đổi: quản trị ghi, quản trị toàn giải đọc; không ai sửa/xóa
+    match /logs/{id} {
+      allow create: if isAdmin() || isSuper();
+      allow read: if isAllAdmin();
+      allow update, delete: if false;
+    }
+
+    // Mọi thứ khác: cấm
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
