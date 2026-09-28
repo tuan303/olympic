@@ -57,7 +57,7 @@ function loginView(app, S) {
   const live = hasFirebase() && !DEMO;
   app.innerHTML = `<div class="wrap page"><div class="card login-card">
     <img src="assets/logo.svg" alt="">
-    <h1 style="font-size:22px;font-weight:800">Quản trị giải Olympic</h1>
+    <h1 style="font-size:22px;font-weight:700">Quản trị giải Olympic</h1>
     <p class="muted">Dành cho Ban tổ chức và giáo viên phụ trách môn để cập nhật lịch, kết quả thi đấu.</p>
     ${live ? `<button class="ms-btn" id="login"><span class="ms-logo"><i style="background:#f25022"></i><i style="background:#7fba00"></i><i style="background:#00a4ef"></i><i style="background:#ffb900"></i></span>Đăng nhập bằng Microsoft 365 của trường</button>
       <p class="muted small" style="margin-top:14px">Chỉ tài khoản @hoangmaistarschool.edu.vn đã được cấp quyền mới cập nhật được.</p>
@@ -73,7 +73,7 @@ function loginView(app, S) {
 }
 function noRoleView(app, S) {
   app.innerHTML = `<div class="wrap page"><div class="card login-card"><img src="assets/logo.svg" alt="">
-    <h1 style="font-size:20px;font-weight:800">Tài khoản chưa được cấp quyền</h1>
+    <h1 style="font-size:20px;font-weight:700">Tài khoản chưa được cấp quyền</h1>
     <p class="muted">${esc(S.user.email)} chưa có trong danh sách quản trị của giải. Nhờ quản trị cao nhất (Tổ CNTT) cấp quyền theo môn bạn phụ trách.</p>
     <button class="btn" id="adm-out">${I.logout} Đăng xuất</button></div></div>`;
   app.querySelector('#adm-out').addEventListener('click', async () => { await ctx.store.signOut(); ctx.render(); });
@@ -150,7 +150,7 @@ function entryRow(E, m) {
   return `<div class="arow" data-row="${esc(m.id)}">
     <div class="small"><b class="num" style="font-size:15px">${esc(m.time || '')}</b><br><span class="muted">${esc(m.venue ? m.venue.replace(/^Sân /, '').slice(0, 26) : '')}</span></div>
     <div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">${sportTag(ev.sport)}<span class="small" style="font-weight:600">${esc(evCaption(E, m))}</span>${m.upd ? `<span class="muted xs">· sửa ${esc(relTime(m.upd))}</span>` : ''}</div>
-      <div style="font-weight:800">${esc(sideLabel(E, A))} <span class="muted" style="font-weight:500">vs</span> ${esc(sideLabel(E, B))}</div>
+      <div style="font-weight:700">${esc(sideLabel(E, A))} <span class="muted" style="font-weight:500">vs</span> ${esc(sideLabel(E, B))}</div>
       ${ko ? `<div class="xs muted wline ${drawKO ? '' : 'hide'}" style="margin-top:4px">Hòa → đội thắng: <label><input type="radio" name="w-${esc(m.id)}" value="a" ${w === 'a' ? 'checked' : ''}> ${esc(A.t || A.label || 'A')}</label> <label><input type="radio" name="w-${esc(m.id)}" value="b" ${w === 'b' ? 'checked' : ''}> ${esc(B.t || B.label || 'B')}</label></div>` : ''}</div>
     <div class="inputs">${ready ? `<input inputmode="numeric" pattern="[0-9]*" aria-label="Tỉ số ${esc(sideLabel(E, A))}" data-sa value="${m.sa ?? ''}"><span class="muted">–</span><input inputmode="numeric" pattern="[0-9]*" aria-label="Tỉ số ${esc(sideLabel(E, B))}" data-sb value="${m.sb ?? ''}">` : '<span class="muted small">Chờ xác định đội</span>'}
       <select data-st aria-label="Trạng thái">${Object.entries(STATUS).filter(([kk]) => kk !== 'wo').map(([kk, v]) => `<option value="${kk}" ${st === kk ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
@@ -389,10 +389,10 @@ function tabEvents(body, S) {
       : `<div class="field"><span>${rank === 1 ? 'Nhất (HCV)' : rank === 2 ? 'Nhì (HCB)' : 'Ba (HCĐ)'}</span><div style="display:flex;gap:6px"><input class="inp" style="flex:1" data-podp="${rank}" placeholder="Họ tên" value="${esc(cur.p || '')}"><input class="inp" style="width:84px" data-pod="${rank}" placeholder="Lớp" value="${esc(cur.t || '')}"></div></div>`;
   };
   body.innerHTML = `${sel}
-    ${team ? `<div class="card card-pad"><h3 style="font-weight:800;margin-bottom:6px">Thành phần các bảng</h3><p class="help" style="margin-top:0">Mỗi bảng một dòng, các lớp cách nhau bằng dấu phẩy. Thứ tự trong bảng chỉ dùng khi phải <b>bốc thăm</b> phân hạng (bằng mọi chỉ số) — kéo lớp xếp trên lên trước.</p>
+    ${team ? `<div class="card card-pad"><h3 style="font-weight:700;margin-bottom:6px">Thành phần các bảng</h3><p class="help" style="margin-top:0">Mỗi bảng một dòng, các lớp cách nhau bằng dấu phẩy. Thứ tự trong bảng chỉ dùng khi phải <b>bốc thăm</b> phân hạng (bằng mọi chỉ số) — kéo lớp xếp trên lên trước.</p>
       <div class="formgrid">${groups.map((g) => { const st = E.standings(ev.id, g); return `<label class="field"><span>${ev.format === 'RR' ? 'Vòng tròn' : 'Bảng ' + g} — hiện tại: ${st.rows.map((r) => r.t).join(' › ')}</span><input class="inp" data-group="${g}" value="${esc(ev.groups[g].join(', '))}"></label>
         <label class="field"><span>Thứ tự bốc thăm khi bằng chỉ số (để trống nếu không cần)</span><input class="inp" data-order="${g}" value="${esc(((ev.manualOrder || {})[g] || []).join(', '))}" placeholder="VD: ${esc(ev.groups[g].slice(0, 2).join(', '))}"></label>`; }).join('')}</div></div>` : ''}
-    <div class="card card-pad section"><h3 style="font-weight:800;margin-bottom:6px">Thứ hạng chung cuộc</h3>
+    <div class="card card-pad section"><h3 style="font-weight:700;margin-bottom:6px">Thứ hạng chung cuộc</h3>
       <p class="help" style="margin-top:0">Hệ thống tự xác định từ trận chung kết/bán kết${ev.format === 'RR' ? ' hoặc bảng xếp hạng' : ''}. Chỉ điền ở đây khi BTC cần <b>xác nhận thủ công</b> (VD: Karate trọng tài phân định, có khiếu nại). Để trống toàn bộ = tự động.</p>
       <p class="small">Tự động hiện tại: ${pod.filter((p) => !p.manual).map((p) => `${p.rank === 1 ? 'Nhất' : p.rank === 2 ? 'Nhì' : 'Ba'}: <b>${esc(E.sideName(p.side))}</b>`).join(' · ') || '<span class="muted">chưa có</span>'}</p>
       <div class="formgrid">${podRow(1, 0)}${podRow(2, 0)}${podRow(3, 0)}${ev.format === 'RR' && (ev.bronze || 1) === 1 ? '' : podRow(3, 1)}</div></div>
@@ -423,7 +423,7 @@ function tabEvents(body, S) {
 function tabNews(body, S) {
   const news = (S.db.news || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
   body.innerHTML = `<div class="grid2" style="align-items:start">
-    <div class="card card-pad"><h3 style="font-weight:800;margin-bottom:10px">Đăng thông báo</h3>
+    <div class="card card-pad"><h3 style="font-weight:700;margin-bottom:10px">Đăng thông báo</h3>
       <div class="formgrid"><label class="field full"><span>Tiêu đề</span><input class="inp" id="nt" placeholder="VD: Hoãn các trận chiều thứ Tư do mưa"></label>
       <label class="field full"><span>Nội dung</span><textarea class="inp" id="nb" rows="5"></textarea></label>
       <label class="check full"><input type="checkbox" id="np"> Ghim lên đầu trang chủ</label></div>
@@ -449,11 +449,11 @@ function tabSettings(body, S) {
   const pts = S.db.settings.points || {};
   const meta = S.db.meta || {};
   const row = (sp, label) => { const p = { ...DEFAULT_POINTS[sp], ...(pts[sp] || {}) }; return `<div class="field"><span>${esc(label)}</span><div style="display:flex;gap:6px;align-items:center">Thắng <input class="inp" style="width:60px" data-pt="${sp}.w" value="${p.w}">${sp === 'bongda' ? ` Hòa <input class="inp" style="width:60px" data-pt="${sp}.d" value="${p.d}">` : ''} Thua <input class="inp" style="width:60px" data-pt="${sp}.l" value="${p.l}"></div></div>`; };
-  body.innerHTML = `<div class="card card-pad"><h3 style="font-weight:800">Cách tính điểm vòng bảng</h3>
+  body.innerHTML = `<div class="card card-pad"><h3 style="font-weight:700">Cách tính điểm vòng bảng</h3>
       <p class="help">Mặc định theo điều lệ: Bóng đá 3–1–0; Bóng rổ thắng 1 – thua 0; Kéo co thắng 2 – thua 0. (Lưu ý: bảng xếp hạng giấy của môn Bóng rổ đang ghi thắng 2 – thua 1; thứ hạng không đổi khi các đội đá đủ số trận, chỉ khác con số điểm.)</p>
       <div class="formgrid">${row('bongda', 'Bóng đá')}${row('bongro', 'Bóng rổ')}${row('keoco', 'Kéo co')}</div>
       <div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="btn primary" id="save-pts">${I.check} Lưu cách tính điểm</button></div></div>
-    <div class="card card-pad section"><h3 style="font-weight:800">Thông tin giải</h3>
+    <div class="card card-pad section"><h3 style="font-weight:700">Thông tin giải</h3>
       <div class="formgrid">
         <label class="field"><span>Ngày khai mạc</span><input class="inp" type="date" id="m-start" value="${esc(meta.start || '')}"></label>
         <label class="field"><span>Ngày kết thúc dự kiến</span><input class="inp" type="date" id="m-end" value="${esc(meta.end || '')}"></label>
@@ -479,7 +479,7 @@ async function tabAdmins(body) {
   let list = [];
   try { list = await ctx.store.listAdmins(); } catch (e) { body.innerHTML = `<div class="card empty-box">${esc(e.message)}</div>`; return; }
   body.innerHTML = `<div class="grid2" style="align-items:start">
-    <div class="card card-pad"><h3 style="font-weight:800;margin-bottom:10px">Cấp quyền</h3>
+    <div class="card card-pad"><h3 style="font-weight:700;margin-bottom:10px">Cấp quyền</h3>
       <div class="formgrid"><label class="field full"><span>Email trường</span><input class="inp" id="a-email" placeholder="ten@hoangmaistarschool.edu.vn"></label>
       <label class="field full"><span>Tên hiển thị</span><input class="inp" id="a-name" placeholder="VD: Cô Oanh – Bóng đá"></label>
       <div class="field full"><span>Phạm vi</span><label class="check"><input type="checkbox" id="a-all"> Toàn giải (mọi môn, thông báo, cài đặt)</label>
@@ -507,14 +507,14 @@ function tabData(body, S) {
   let issues = S.db.sourceNotes || [];
   if (!issues.length) ctx.store.loadSeed().then((s) => { const box = document.getElementById('issues'); if (box && s.sourceNotes) box.innerHTML = s.sourceNotes.map((l) => `<div class="issue ${/ĐÃ SỬA/.test(l) ? 'fix' : /THIẾU|TRÙNG|lạ|khác/.test(l) ? 'warn' : ''}">${esc(l)}</div>`).join(''); });
   body.innerHTML = `<div class="grid2" style="align-items:start">
-    <div class="card card-pad"><h3 style="font-weight:800">Xuất file</h3><p class="help">File CSV mở trực tiếp bằng Excel (tiếng Việt có dấu).</p>
+    <div class="card card-pad"><h3 style="font-weight:700">Xuất file</h3><p class="help">File CSV mở trực tiếp bằng Excel (tiếng Việt có dấu).</p>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
         <button class="btn" id="x-matches">${I.download} Lịch & kết quả toàn giải (.csv)</button>
         <button class="btn" id="x-standings">${I.download} Bảng xếp hạng vòng bảng (.csv)</button>
         <button class="btn" id="x-medals">${I.download} Bảng tổng sắp & nhà vô địch (.csv)</button>
         <button class="btn" id="x-json">${I.download} Sao lưu toàn bộ dữ liệu (.json)</button>
       </div></div>
-    <div class="card card-pad"><h3 style="font-weight:800">Máy chủ dữ liệu</h3>
+    <div class="card card-pad"><h3 style="font-weight:700">Máy chủ dữ liệu</h3>
       <p class="small">Trạng thái: <b>${S.mode === 'live' ? 'Đang đồng bộ thời gian thực (Firebase)' : S.mode === 'local' ? 'Chế độ tập dượt — thay đổi chỉ lưu trên máy này' : 'Chưa kết nối được máy chủ'}</b></p>
       ${S.role.super ? `<div style="margin-top:10px"><label class="btn" style="cursor:pointer">${I.upload} Khôi phục từ file sao lưu (.json)<input type="file" id="imp" accept=".json,application/json" hidden></label></div>` : ''}
       ${S.role.super ? `<div style="margin-top:10px"><button class="btn" id="reset-local">${I.refresh} ${S.mode === 'local' ? 'Xóa thay đổi tập dượt, về lịch gốc' : 'Xóa MỌI thay đổi trên máy chủ, về lịch gốc'}</button></div>` : ''}

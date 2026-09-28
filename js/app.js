@@ -5,7 +5,7 @@ import * as store from './store.js';
 import { esc, todayISO, fmtDate, fmtFull, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, fold, ls, debounce } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass } from './engine.js';
 import { SPORT_ICON, I, heroArt } from './icons.js';
-import { sportVars, sportTag, levelName, capFirst, matchRow, standingsTable, teamBracket, indBracket, podiumHtml, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
+import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
 import { ASSET_VER } from './config.js';
 
 const app = document.getElementById('app');
@@ -124,29 +124,27 @@ function viewHome(S) {
   }).join('');
   const dayTitle = day === today ? `Hôm nay · ${weekdayLong(day)} ${fmtDM(day)}` : `${day > today ? 'Ngày thi đấu tiếp theo' : 'Ngày thi đấu gần nhất'} · ${weekdayLong(day)} ${fmtDM(day)}`;
 
-  // Lớp của tôi
-  let myBox = '';
-  if (myCls) {
-    const ms = E.matchesOfClass(myCls).filter((m) => E.isReal(m));
-    const next = ms.filter((m) => !isDone(m) && m.date >= today).slice(0, 3);
-    myBox = `<div class="card"><div class="card-head"><h3>${I.star} Lớp ${esc(myCls)}</h3><a class="more" href="#/lop/${encodeURIComponent(myCls)}">Xem tất cả ${I.right}</a></div>
-      <div class="mlist">${next.length ? next.map((m) => matchRow(E, m, { showDate: true })).join('') : '<div class="empty-box small">Không còn trận sắp tới.</div>'}</div></div>`;
-  }
+  // Tra cứu lớp (+ trận sắp tới của lớp đang theo dõi)
   const classes = E.allClasses();
-  const classSearch = `<div class="card card-pad">
-      <h3 style="font-size:17px;font-weight:800;margin-bottom:4px">${I.users} Tra cứu lớp</h3>
-      <p class="muted small" style="margin:0 0 10px">Nhập tên lớp để xem lịch, kết quả và thứ hạng của lớp ở tất cả các môn.</p>
-      <form class="search" id="home-class-form"><span>${I.search}</span><input class="inp" style="width:100%" list="cls-list" id="home-class" placeholder="Ví dụ: 7A05, 10T01, 3A2…" autocomplete="off"></form>
-      <datalist id="cls-list">${classes.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
-    </div>`;
-  const news = (S.db.news || []).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0)).slice(0, 4);
-  const newsBox = `<div class="card"><div class="card-head"><h3>${I.bell} Thông báo từ Ban tổ chức</h3></div>
-    <div class="news">${news.length ? news.map((n) => `<div class="news-item"><h4>${n.pinned ? '<span class="pin-tag">Ghim</span>' : ''}${esc(n.title)}</h4><div class="when">${esc(relTime(n.at))}</div><p>${esc(n.body || '')}</p></div>`).join('')
+  let myList = '';
+  if (myCls) {
+    const next = E.matchesOfClass(myCls).filter((m) => E.isReal(m) && !isDone(m) && m.date >= today).slice(0, 2);
+    myList = `<div class="slot-h">${I.star}<b>Lớp ${esc(myCls)} · trận sắp tới</b><a class="n" href="#/lop/${encodeURIComponent(myCls)}" style="color:var(--royal);font-weight:600">Xem hết ›</a></div>
+      ${next.length ? fixtureList(E, next, { showDate: true, header: false, venue: false }) : '<div class="empty-box small">Không còn trận sắp tới.</div>'}`;
+  }
+  const classCard = `<div class="card class-card"><div class="card-head"><h3>${I.users} Tra cứu lớp</h3><a class="more" href="#/lop">Tất cả lớp ${I.right}</a></div>
+      <div class="card-pad grow" style="padding-top:12px">
+        <p class="muted small" style="margin:0 0 10px">Nhập tên lớp để xem lịch, kết quả và thứ hạng của lớp ở tất cả các môn.</p>
+        <form class="search" id="home-class-form"><span>${I.search}</span><input class="inp" style="width:100%" list="cls-list" id="home-class" placeholder="Ví dụ: 7A05, 10T01, 3A2…" autocomplete="off"></form>
+        <datalist id="cls-list">${classes.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+      </div>${myList}</div>`;
+  const news = (S.db.news || []).slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.at || 0) - (a.at || 0)).slice(0, 3);
+  const newsCard = `<div class="card news-card"><div class="card-head"><h3>${I.bell} Thông báo từ Ban tổ chức</h3></div>
+    <div class="news grow">${news.length ? news.map((n) => `<div class="news-item"><h4>${n.pinned ? '<span class="pin-tag">Ghim</span>' : ''}${esc(n.title)}</h4><div class="when">${esc(relTime(n.at))}</div><p>${esc(n.body || '')}</p></div>`).join('')
     : `<div class="news-item"><h4>Khai mạc Olympic Thể thao học sinh lần thứ IV</h4><div class="when">Thứ Hai, 28/09/2026</div><p>Các khối thi đấu trong 2 tiết thể thao hằng tuần. Trận nào hoãn sẽ chuyển sang tuần kế tiếp — theo dõi lịch cập nhật tại đây.</p></div>`}</div></div>`;
-
-  const medals = E.medalTable().slice(0, 8);
-  const medalBox = `<div class="card"><div class="card-head"><h3>${I.medal} Bảng tổng sắp huy chương</h3><a class="more" href="#/tong-sap">Chi tiết ${I.right}</a></div>
-    ${medals.length ? medalTableHtml(medals, { compact: true }) : `<div class="empty-box small">${I.medal}<b>Chưa có huy chương</b>Huy chương được trao khi các nội dung đi đến trận chung kết.</div>`}</div>`;
+  const medals = E.medalTable().slice(0, 5);
+  const medalCard = `<div class="card medal-card"><div class="card-head"><h3>${I.medal} Bảng tổng sắp</h3><a class="more" href="#/tong-sap">Chi tiết ${I.right}</a></div>
+    <div class="grow" style="display:flex;flex-direction:column;justify-content:center">${medals.length ? medalTableHtml(medals, { compact: true }) : `<div class="empty-box small">${I.medal}<b>Chưa có huy chương</b>Huy chương được trao khi các nội dung đi đến trận chung kết.</div>`}</div></div>`;
 
   app.innerHTML = `
   <section class="hero"><div class="wrap hero-in">
@@ -162,15 +160,12 @@ function viewHome(S) {
   </div></section>
   <div class="wrap page" style="padding-top:0">
     <div class="sports">${sportCards}</div>
+    <div class="home-top">${newsCard}${classCard}${medalCard}</div>
     <div class="cols section">
       <div class="card"><div class="card-head"><h3>${I.cal} ${esc(dayTitle)}</h3><a class="more" href="#/lich?d=${day}">Xem lịch chi tiết ${I.right}</a></div>
         ${dayBlocks || `<div class="empty-box">${I.cal}<b>Không có trận nào</b></div>`}</div>
       <div class="card"><div class="card-head"><h3>${I.whistle} Kết quả mới nhất</h3><a class="more" href="#/lich?st=done">Tất cả ${I.right}</a></div>
-        <div class="mlist">${latest.length ? latest.map((m) => matchRow(E, m, { showDate: true })).join('') : `<div class="empty-box small">Chưa có kết quả.</div>`}</div></div>
-    </div>
-    <div class="cols section">
-      <div style="display:flex;flex-direction:column;gap:16px">${myBox}${newsBox}</div>
-      <div style="display:flex;flex-direction:column;gap:16px">${classSearch}${medalBox}</div>
+        ${latest.length ? fixtureList(E, latest, { showDate: true, header: false, venue: false }) : `<div class="empty-box small">Chưa có kết quả.</div>`}</div>
     </div>
   </div>`;
   const f = document.getElementById('home-class-form');
@@ -235,8 +230,16 @@ function viewSchedule(S) {
   const body = Object.keys(byDate).sort(stf === 'done' && !q.get('d') ? (a, b) => b.localeCompare(a) : undefined).map((d) => {
     const grades = Object.keys(byDate[d]).map(Number).sort((a, b) => a - b);
     return `<div class="day"><div class="day-h"><h3>${esc(weekdayLong(d))}, ${esc(fmtDM(d))}</h3><span class="muted">${Object.values(byDate[d]).flat().length} trận</span></div>
-      ${grades.map((g) => { const ms = byDate[d][g]; return `<div class="card gblock"><div class="gblock-h"><b>Khối ${g} <span class="muted small" style="font-weight:600">· ${esc(levelName(levelOf(g)))}</span></b><span class="muted">${ms.filter(isDone).length}/${ms.length} có kết quả</span></div>
-        <div class="mlist">${ms.map((m) => matchRow(E, m, { grade: false, showStatus: true })).join('')}</div></div>`; }).join('')}</div>`;
+      ${grades.map((g) => {
+        const sOrder = (m) => SPORTS.findIndex((s) => s.id === E.events[m.ev].sport);
+        const ms = byDate[d][g].slice().sort((a, b) => (a.time || '').localeCompare(b.time || '') || sOrder(a) - sOrder(b) || cmpMatch(a, b));
+        const done = ms.filter(isDone).length;
+        const t0 = ms.map((m) => m.time).filter(Boolean).sort()[0] || '';
+        const session = t0 ? (t0 < '12:00' ? 'Sáng ' : 'Chiều ') + weekdayLong(d).toLocaleLowerCase('vi') : weekdayLong(d);
+        return `<div class="card gblock"><div class="gblock-h"><span class="gtag">Khối ${g}</span><span class="ginfo">${esc(levelName(levelOf(g)))} · ${esc(session)}</span>
+          <span class="gprog"><span class="bar"><i style="width:${ms.length ? Math.round((done * 100) / ms.length) : 0}%"></i></span>${done}/${ms.length} có kết quả</span></div>
+          ${fixtureList(E, ms, { bySlot: true, grade: false })}</div>`;
+      }).join('')}</div>`;
   }).join('');
 
   const gradeOpts = LEVELS.filter((l) => !lv || l.id === lv).flatMap((l) => l.grades).map((g) => `<option value="${g}" ${String(g) === k ? 'selected' : ''}>Khối ${g}</option>`).join('');
@@ -318,8 +321,10 @@ function matchesByWeek(E, list, meta) {
   return Object.keys(by).map(Number).sort((a, b) => a - b).map((w) => {
     const ms = by[w];
     const d0 = mondayOf(ms[0].date);
-    return `<div class="card gblock"><div class="gblock-h"><b>Tuần ${w} <span class="muted small" style="font-weight:600">· ${fmtDM(d0)} – ${fmtDM(addDays(d0, 4))}</span></b><span class="muted">${ms.filter(isDone).length}/${ms.length}</span></div>
-      <div class="mlist">${ms.map((m) => matchRow(E, m, { showDate: true, showSport: false, grade: false, showStatus: true })).join('')}</div></div>`;
+    const done = ms.filter(isDone).length;
+    return `<div class="card gblock"><div class="gblock-h"><span class="gtag">Tuần ${w}</span><span class="ginfo">${fmtDM(d0)} – ${fmtDM(addDays(d0, 4))}</span>
+      <span class="gprog"><span class="bar"><i style="width:${ms.length ? Math.round((done * 100) / ms.length) : 0}%"></i></span>${done}/${ms.length} có kết quả</span></div>
+      ${fixtureList(E, ms, { showDate: true, showSport: false, grade: false })}</div>`;
   }).join('');
 }
 function teamEventView(E, ev) {
@@ -332,7 +337,7 @@ function teamEventView(E, ev) {
   return `
     <div class="card card-pad" style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
       <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${sportTag(ev.sport)}<span class="tag">${esc(levelName(ev.level))}</span>${ev.days ? `<span class="tag">${I.cal} ${esc(ev.days)}</span>` : ''}</div>
-        <h2 style="font-size:20px;font-weight:800;margin-top:8px">${esc(ev.name)}</h2><div class="muted small">${esc(formatText(ev))}</div></div>
+        <h2 style="font-size:20px;font-weight:700;margin-top:8px">${esc(ev.name)}</h2><div class="muted small">${esc(formatText(ev))}</div></div>
       <div style="min-width:200px"><div class="muted xs" style="display:flex;justify-content:space-between"><span>Tiến độ</span><span class="num">${prog.done}/${prog.total} trận</span></div>
         <div class="mini" style="height:8px;background:var(--line-2);border-radius:9px;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${prog.pct}%;background:${SPORT[ev.sport].color}"></i></div></div>
     </div>
@@ -356,7 +361,7 @@ function indEventView(E, ev, inGrade) {
     <div class="chips" style="margin-bottom:14px">${cats}</div>
     <div class="card card-pad" style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
       <div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${sportTag(ev.sport)}<span class="tag">${esc(levelName(ev.level))}</span>${karate ? `<span class="tag">${I.cal} ${esc(fmtFull(E.finalMatch(ev) ? E.finalMatch(ev).date : ''))}</span>` : ev.days ? `<span class="tag">${I.cal} ${esc(ev.days)}</span>` : ''}</div>
-        <h2 style="font-size:20px;font-weight:800;margin-top:8px">${esc(ev.name)}</h2>
+        <h2 style="font-size:20px;font-weight:700;margin-top:8px">${esc(ev.name)}</h2>
         <div class="muted small">${athletes.size} ${ev.cat && ev.cat.startsWith('doi') ? 'cặp VĐV' : 'VĐV'} · Thi đấu loại trực tiếp${karate ? ' · Trọng tài phất cờ (2–1 hoặc 3–0)' : ' · 1 séc 25 điểm (chung kết 31 điểm)'}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
       <div style="min-width:200px"><div class="muted xs" style="display:flex;justify-content:space-between"><span>Tiến độ</span><span class="num">${prog.done}/${prog.total} trận</span></div>
         <div style="height:8px;background:var(--line-2);border-radius:9px;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${prog.pct}%;background:${SPORT[ev.sport].color}"></i></div></div>
@@ -364,7 +369,7 @@ function indEventView(E, ev, inGrade) {
     <div class="section"><div class="section-title"><h2>${I.medal} Thứ hạng</h2></div>${podiumHtml(E, ev.id)}</div>
     <div class="section"><div class="section-title"><h2>${I.bracket} Nhánh đấu</h2><span class="muted small">Người thắng tự điền vào vòng sau · kéo ngang để xem hết</span></div><div class="card card-pad">${indBracket(E, ev.id)}</div></div>
     <div class="section"><div class="section-title"><h2>${I.cal} Lịch & kết quả</h2><button class="btn sm" data-toggle-done>${pref.onlyDone ? 'Hiện tất cả trận' : 'Chỉ trận đã có kết quả'}</button></div>
-      ${karate ? `<div class="card gblock"><div class="mlist">${shown.map((m) => matchRow(E, m, { showDate: true, showSport: false, grade: false, showStatus: true })).join('') || '<div class="empty-box">Chưa có trận.</div>'}</div></div>` : (matchesByWeek(E, shown, S.db.meta || {}) || `<div class="card empty-box">Chưa có trận đã có kết quả.</div>`)}</div>`;
+      ${karate ? `<div class="card gblock">${shown.length ? fixtureList(E, shown, { showSport: false, grade: false }) : '<div class="empty-box">Chưa có trận.</div>'}</div>` : (matchesByWeek(E, shown, S.db.meta || {}) || `<div class="card empty-box">Chưa có trận đã có kết quả.</div>`)}</div>`;
 }
 
 // ============================================================
@@ -455,9 +460,9 @@ function viewClass(S) {
     <div class="cols section">
       <div>
         <div class="section-title"><h2>${I.cal} Trận sắp tới</h2><span class="muted small">${upcoming.length} trận</span></div>
-        <div class="card"><div class="mlist">${upcoming.slice(0, 30).map((m) => matchRow(E, m, { showDate: true, grade: false })).join('') || '<div class="empty-box small">Không còn trận sắp tới.</div>'}</div></div>
+        <div class="card">${upcoming.length ? fixtureList(E, upcoming.slice(0, 30), { showDate: true, grade: false }) : '<div class="empty-box small">Không còn trận sắp tới.</div>'}</div>
         <div class="section-title section"><h2>${I.whistle} Kết quả đã đấu</h2><span class="muted small">${past.length} trận</span></div>
-        <div class="card"><div class="mlist">${past.map((m) => matchRow(E, m, { showDate: true, grade: false })).join('') || '<div class="empty-box small">Chưa có kết quả.</div>'}</div></div>
+        <div class="card">${past.length ? fixtureList(E, past, { showDate: true, grade: false }) : '<div class="empty-box small">Chưa có kết quả.</div>'}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card"><div class="card-head"><h3>${I.users} Môn đồng đội</h3></div>${teamCards || '<div class="empty-box small">Không có.</div>'}</div>
