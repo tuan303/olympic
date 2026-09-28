@@ -55,9 +55,9 @@ function shell() {
   // dải thông báo trạng thái dữ liệu
   const b = document.getElementById('banner');
   let html = '';
-  if (S.mode === 'local') html = `<div class="banner demo"><div class="wrap"><b>Chế độ xem thử.</b><span>Lịch và kết quả lấy từ file Excel của Tổ Thể thao (cập nhật đến 28/09). Kết nối máy chủ để mọi người cùng xem kết quả trực tiếp.</span></div></div>`;
-  else if (S.mode === 'seed' && S.needsSeed) html = `<div class="banner demo"><div class="wrap"><b>Máy chủ chưa có dữ liệu.</b><span>Đang hiển thị lịch gốc từ Excel. Quản trị vào mục Quản trị → Dữ liệu để nạp lên máy chủ.</span></div></div>`;
-  else if ((S.mode === 'seed' || S.mode === 'cache') && S.error) html = `<div class="banner warn"><div class="wrap"><b>Đang ngoại tuyến.</b><span>${esc(S.error)}</span><button onclick="location.reload()">Tải lại</button></div></div>`;
+  if (S.mode === 'local' && store.DEMO) html = `<div class="banner demo"><div class="wrap"><b>Chế độ tập dượt.</b><span>Dữ liệu gốc từ Excel; mọi thay đổi chỉ lưu trên trình duyệt này, không ảnh hưởng dữ liệu thật.</span><button onclick="location.href=location.pathname+location.hash">Về trang chính thức</button></div></div>`;
+  else if (S.mode === 'local') html = `<div class="banner demo"><div class="wrap"><b>Chế độ xem thử.</b><span>Lịch và kết quả lấy từ file Excel của Tổ Thể thao (cập nhật đến 28/09). Kết nối máy chủ để mọi người cùng xem kết quả trực tiếp.</span></div></div>`;
+  else if (S.mode === 'cache' && S.error) html = `<div class="banner warn"><div class="wrap"><b>Đang ngoại tuyến.</b><span>${esc(S.error)}</span><button onclick="location.reload()">Tải lại</button></div></div>`;
   b.innerHTML = html;
 }
 
@@ -66,7 +66,7 @@ let renderQueued = false;
 export function render() {
   if (renderQueued) return;
   renderQueued = true;
-  requestAnimationFrame(() => { renderQueued = false; doRender(); });
+  setTimeout(() => { renderQueued = false; doRender(); }, 0); // không dùng rAF: tab ẩn sẽ không vẽ
 }
 function doRender() {
   const S = store.getState();

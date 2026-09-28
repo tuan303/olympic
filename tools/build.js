@@ -36,8 +36,13 @@ for (const [ev, groupsRaw] of Object.entries(X.GROUPS)) {
   };
   // sắp xếp trận vòng bảng theo ngày/giờ; đánh id
   const g = list.filter(m => m.stage === 'G').sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  g.forEach((m, i) => {
-    const id = `${ev}-${String(i + 1).padStart(2, '0')}`;
+  // Mã trận vòng bảng cố định theo cặp đấu (không phụ thuộc thứ tự) để lần sau nạp lại Excel
+  // các kết quả đã nhập trên máy chủ vẫn gắn đúng trận.
+  const used = {};
+  g.forEach((m) => {
+    const pair = [m.a.t, m.b.t].sort((x, y) => x.localeCompare(y, 'vi', { numeric: true })).join('-');
+    let id = `${ev}-${rr ? 'A' : m.group}-${pair}`;
+    if (used[id]) { used[id]++; id += '-' + used[id]; } else used[id] = 1;
     const out = { id, ev, stage: 'G', group: rr ? 'A' : m.group, date: m.date, time: m.time, end: m.end, venue: m.venue, a: m.a, b: m.b, week: m.week, src: m.src };
     if (m.slot) out.slot = m.slot;
     if (m.st) { out.st = m.st; out.sa = m.sa; out.sb = m.sb; }

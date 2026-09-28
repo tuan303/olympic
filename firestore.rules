@@ -41,14 +41,15 @@ service cloud.firestore {
       return isAllAdmin() || (isAdmin() && adminDoc().data.get('sports', {}).get(sport, false) == true);
     }
 
-    // Dữ liệu giải: olympic/config, olympic/rules, olympic/sport_<môn>
+    // Dữ liệu giải (lịch gốc nằm trong web; Firestore chỉ lưu phần thay đổi):
+    //   olympic/config             → thông báo, cài đặt điểm, thông tin giải
+    //   olympic/r_<môn>_<cấp>      → kết quả / đổi lịch của môn đó, cấp đó
     match /olympic/{docId} {
       allow read: if true;
-      // config (thông báo, cài đặt) và điều lệ: quản trị toàn giải
-      allow write: if (docId == 'config' || docId == 'rules') && isAllAdmin();
-      // lịch & kết quả từng môn: người được giao môn đó
-      allow create, delete: if docId.matches('sport_.*') && isSuper();
-      allow update: if docId.matches('sport_.*') && canSport(docId.split('_')[1]);
+      allow write: if docId == 'config' && isAllAdmin();
+      allow create, update: if docId.matches('r_(bongda|bongro|keoco|caulong|karate)_(TH|THCS|THPT)')
+                            && canSport(docId.split('_')[1]);
+      allow delete: if docId.matches('r_.*') && isSuper();
     }
 
     // Danh sách quản trị: mỗi người đọc được quyền của chính mình; chỉ quản trị cao nhất cấp/thu hồi

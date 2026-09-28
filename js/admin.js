@@ -5,7 +5,7 @@ import { esc, todayISO, fmtDate, fmtDM, addDays, mondayOf, weekNo, weekdayLong, 
 import { SPORTS, SPORT, LEVELS, levelOf, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
 import { SPORT_ICON, I } from './icons.js';
 import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName } from './ui.js';
-import { hasFirebase } from './store.js';
+import { hasFirebase, DEMO } from './store.js';
 
 let ctx = null;
 let dirty = new Set();
@@ -43,7 +43,6 @@ export function render(app, c) {
   app.innerHTML = `<div class="wrap page">
     <div class="page-head"><div><div class="eyebrow">Quản trị giải</div><h1>${esc(cur.label)}</h1><p>${esc(S.user.name || S.user.email)} · ${esc(roleTxt)}${S.mode === 'local' ? ' · <b>chế độ xem thử: thay đổi chỉ lưu trên máy này</b>' : ''}</p></div>
       <div style="display:flex;gap:8px"><button class="btn hide" id="adm-refresh">${I.refresh} Có cập nhật mới – tải lại</button><button class="btn" id="adm-out">${I.logout} Đăng xuất</button></div></div>
-    ${S.needsSeed ? `<div class="card card-pad" style="border-color:#f3d27a;background:#fffaeb;margin-bottom:14px"><b>Máy chủ chưa có dữ liệu.</b> ${S.role.super ? 'Vào tab <a href="#/quan-tri/du-lieu" style="text-decoration:underline">Dữ liệu</a> bấm "Nạp dữ liệu gốc lên máy chủ" để bắt đầu.' : 'Nhờ quản trị cao nhất nạp dữ liệu gốc.'}</div>` : ''}
     <div class="admin-tabs">${allowed.map((t) => `<a class="chip ${t.id === cur.id ? 'on' : ''}" href="#/quan-tri/${t.id}">${t.icon} ${esc(t.label)}</a>`).join('')}</div>
     <div id="adm-body"></div></div>`;
   app.querySelector('#adm-out').addEventListener('click', async () => { await c.store.signOut(); toast('Đã đăng xuất'); c.render(); });
@@ -55,13 +54,14 @@ export function render(app, c) {
 
 // ---------------- đăng nhập ----------------
 function loginView(app, S) {
-  const live = hasFirebase();
+  const live = hasFirebase() && !DEMO;
   app.innerHTML = `<div class="wrap page"><div class="card login-card">
     <img src="assets/logo.svg" alt="">
     <h1 style="font-size:22px;font-weight:800">Quản trị giải Olympic</h1>
     <p class="muted">Dành cho Ban tổ chức và giáo viên phụ trách môn để cập nhật lịch, kết quả thi đấu.</p>
     ${live ? `<button class="ms-btn" id="login"><span class="ms-logo"><i style="background:#f25022"></i><i style="background:#7fba00"></i><i style="background:#00a4ef"></i><i style="background:#ffb900"></i></span>Đăng nhập bằng Microsoft 365 của trường</button>
-      <p class="muted small" style="margin-top:14px">Chỉ tài khoản @hoangmaistarschool.edu.vn đã được cấp quyền mới cập nhật được.</p>`
+      <p class="muted small" style="margin-top:14px">Chỉ tài khoản @hoangmaistarschool.edu.vn đã được cấp quyền mới cập nhật được.</p>
+      <p class="small" style="margin-top:18px"><a href="?demo=1#/quan-tri" style="color:var(--royal);font-weight:700">Tập dượt nhập kết quả (không ảnh hưởng dữ liệu thật) →</a></p>`
     : `<button class="btn primary" id="login">${I.gear} Vào quản trị (chế độ xem thử)</button>
       <p class="muted small" style="margin-top:14px">Chưa kết nối máy chủ: mọi thay đổi chỉ lưu trên trình duyệt này để chạy thử. Khi kết nối Firebase, trang này dùng đăng nhập Microsoft 365 của trường.</p>`}
   </div></div>`;
@@ -515,10 +515,10 @@ function tabData(body, S) {
         <button class="btn" id="x-json">${I.download} Sao lưu toàn bộ dữ liệu (.json)</button>
       </div></div>
     <div class="card card-pad"><h3 style="font-weight:800">Máy chủ dữ liệu</h3>
-      <p class="small">Trạng thái: <b>${S.mode === 'live' ? 'Đang đồng bộ thời gian thực (Firebase)' : S.mode === 'local' ? 'Chế độ xem thử — dữ liệu trên máy này' : 'Chưa đồng bộ'}</b></p>
-      ${S.role.super && S.mode !== 'local' ? `<button class="btn ${S.needsSeed ? 'primary' : ''}" id="seed">${I.upload} ${S.needsSeed ? 'Nạp dữ liệu gốc lên máy chủ' : 'Nạp lại dữ liệu gốc (XÓA mọi kết quả đã nhập)'}</button>` : ''}
+      <p class="small">Trạng thái: <b>${S.mode === 'live' ? 'Đang đồng bộ thời gian thực (Firebase)' : S.mode === 'local' ? 'Chế độ tập dượt — thay đổi chỉ lưu trên máy này' : 'Chưa kết nối được máy chủ'}</b></p>
       ${S.role.super ? `<div style="margin-top:10px"><label class="btn" style="cursor:pointer">${I.upload} Khôi phục từ file sao lưu (.json)<input type="file" id="imp" accept=".json,application/json" hidden></label></div>` : ''}
-      ${S.mode === 'local' ? `<div style="margin-top:10px"><button class="btn" id="reset-local">${I.refresh} Xóa thay đổi thử, về dữ liệu gốc</button></div>` : ''}
+      ${S.role.super ? `<div style="margin-top:10px"><button class="btn" id="reset-local">${I.refresh} ${S.mode === 'local' ? 'Xóa thay đổi tập dượt, về lịch gốc' : 'Xóa MỌI thay đổi trên máy chủ, về lịch gốc'}</button></div>` : ''}
+      <p class="help" style="margin-top:10px">Lịch gốc (từ Excel) nằm sẵn trong web. Máy chủ chỉ lưu phần Ban tổ chức cập nhật (kết quả, đổi lịch, thông báo) nên mỗi lượt xem rất nhẹ.</p>
     </div></div>
     <div class="card section"><div class="card-head"><h3>${I.info} Ghi chú khi chuyển dữ liệu từ Excel (${issues.length})</h3></div>
       <p class="help" style="padding:0 18px">Các chỗ file gốc bị lệch/thiếu. "Đã sửa" = lỗi gõ chỉ có một cách sửa khớp thể thức; còn lại cần Tổ Thể thao kiểm tra và sửa trong tab "Lịch & trận đấu".</p>
@@ -548,15 +548,6 @@ function tabData(body, S) {
     const db = ctx.store.getState().db;
     download(`olympic-sao-luu-${stamp}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), meta: db.meta, settings: db.settings, news: db.news, rules: db.rules, general: db.general, events: db.events, matches: db.matches }), 'application/json');
   });
-  const seed = body.querySelector('#seed');
-  if (seed) seed.addEventListener('click', async () => {
-    const msg = S.needsSeed ? 'Nạp toàn bộ lịch thi đấu gốc (từ Excel) lên máy chủ?' : 'NẠP LẠI sẽ XÓA mọi kết quả, thay đổi đã nhập trên máy chủ và thay bằng dữ liệu gốc. Nên "Sao lưu" trước. Tiếp tục?';
-    if (!confirm(msg)) return;
-    if (!S.needsSeed && prompt('Gõ NAP LAI để xác nhận') !== 'NAP LAI') return;
-    seed.disabled = true;
-    try { await ctx.store.seedServer(); toast('Đã nạp dữ liệu gốc lên máy chủ', 'ok'); } catch (e) { toast(e.message, 'err'); }
-    seed.disabled = false;
-  });
   const imp = body.querySelector('#imp');
   if (imp) imp.addEventListener('change', async () => {
     const f = imp.files[0]; if (!f) return;
@@ -564,7 +555,11 @@ function tabData(body, S) {
     try { await ctx.store.importBackup(await f.text()); toast('Đã khôi phục', 'ok'); ctx.render(); } catch (e) { toast(e.message, 'err'); }
   });
   const rl = body.querySelector('#reset-local');
-  if (rl) rl.addEventListener('click', async () => { if (!confirm('Xóa mọi thay đổi thử trên máy này?')) return; await ctx.store.resetLocal(); toast('Đã về dữ liệu gốc', 'ok'); ctx.render(); });
+  if (rl) rl.addEventListener('click', async () => {
+    if (!confirm(S.mode === 'local' ? 'Xóa mọi thay đổi tập dượt trên máy này?' : 'XÓA MỌI kết quả, đổi lịch đã nhập trên máy chủ và quay về lịch gốc? Nên bấm "Sao lưu" trước.')) return;
+    if (S.mode !== 'local' && prompt('Gõ XOA HET để xác nhận') !== 'XOA HET') return;
+    try { await ctx.store.resetAll(); toast('Đã về lịch gốc', 'ok'); ctx.render(); } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 // ============================================================

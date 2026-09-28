@@ -27,4 +27,4 @@ export const SUPER_ADMINS = [
 ];
 
 // Đổi số này mỗi khi sửa các file js/*.js để trình duyệt tải bản mới (không có bước build)
-export const ASSET_VER = '2026-09-28a';
+export const ASSET_VER = '2026-09-28b';

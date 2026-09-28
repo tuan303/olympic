@@ -1,16 +1,19 @@
 // ============================================================
-//  Firebase: Firestore (dữ liệu thời gian thực) + đăng nhập Microsoft 365
-//  Cấu trúc:
-//    olympic/config        → meta, settings (điểm), news (thông báo)
-//    olympic/rules         → điều lệ + quy định chung
-//    olympic/sport_<môn>   → { events: {id: ...}, matches: {id: ...} }
-//    admins/{email}        → { all: true } hoặc { sports: { bongda: true, ... } }
-//    logs/{auto}           → nhật ký thay đổi (chỉ quản trị đọc)
-//  Mỗi người xem chỉ đọc 7 document → rất ít lượt đọc Firestore.
+//  Firebase: Firestore (thời gian thực) + đăng nhập Microsoft 365
+//
+//  Lịch gốc nằm trong js/seed-data.js (phục vụ tĩnh qua Vercel, không tốn Firestore).
+//  Firestore CHỈ lưu phần thay đổi so với lịch gốc:
+//    olympic/config            → meta, settings (cách tính điểm), news (thông báo), rules (điều lệ sửa)
+//    olympic/r_<môn>_<cấp>     → { m: { <mã trận>: trận | null(đã xóa) }, e: { <mã nội dung>: nội dung } }
+//                                (15 document: 5 môn × TH/THCS/THPT — mỗi lần nhập kết quả chỉ gửi lại 1 document nhỏ)
+//    admins/{email}            → { all: true } hoặc { sports: { bongda: true, ... } }
+//    logs/{auto}               → nhật ký thay đổi
 // ============================================================
 const CDN = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 export const SPORT_IDS = ['bongda', 'bongro', 'keoco', 'caulong', 'karate'];
+export const LEVEL_IDS = ['TH', 'THCS', 'THPT'];
+export const OVERRIDE_DOCS = SPORT_IDS.flatMap((s) => LEVEL_IDS.map((l) => `r_${s}_${l}`));
 
 export async function connect(config) {
   const [appMod, fs] = await withTimeout(Promise.all([import(CDN + 'firebase-app.js'), import(CDN + 'firebase-firestore.js')]), 12000);
@@ -21,44 +24,32 @@ export async function connect(config) {
   } catch (e) {
     db = fs.getFirestore(app);
   }
-  const { doc, onSnapshot, setDoc, updateDoc, deleteField, serverTimestamp, collection, addDoc, getDocs, getDoc, deleteDoc, query, orderBy, limit, writeBatch } = fs;
+  const { doc, onSnapshot, setDoc, serverTimestamp, collection, addDoc, getDocs, getDoc, deleteDoc, query, orderBy, limit, writeBatch, FieldPath } = fs;
   const clean = (o) => JSON.parse(JSON.stringify(o));
-  const sportDoc = (s) => doc(db, 'olympic', 'sport_' + s);
 
   const api = {
-    // Nghe 7 document; cb(name, data|null) mỗi khi có thay đổi
-    watchAll(cb, onErr) {
-      const names = ['config', 'rules', ...SPORT_IDS.map((s) => 'sport_' + s)];
+    // Nghe các document; cb(tên, dữ liệu|null)
+    watchAll(names, cb, onErr) {
       const stops = names.map((n) => onSnapshot(doc(db, 'olympic', n),
-        (snap) => cb(n, snap.exists() ? snap.data() : null, snap.metadata.fromCache),
-        (e) => onErr && onErr(e)));
+        (snap) => cb(n, snap.exists() ? snap.data() : null),
+        (e) => onErr && onErr(e, n)));
       return () => stops.forEach((f) => f());
     },
-    async setMatch(sport, match) {
-      await updateDoc(sportDoc(sport), { ['matches.' + match.id]: clean(match), rev: serverTimestamp() });
-    },
-    async deleteMatch(sport, id) {
-      await updateDoc(sportDoc(sport), { ['matches.' + id]: deleteField(), rev: serverTimestamp() });
-    },
-    async setEvent(sport, ev) {
-      await updateDoc(sportDoc(sport), { ['events.' + ev.id]: clean(ev), rev: serverTimestamp() });
+    // Ghi đè 1 trận (kind 'm') hoặc 1 nội dung (kind 'e'); value = null nghĩa là xóa trận
+    async setOverride(docId, kind, id, value) {
+      const data = { [kind]: { [id]: value === null ? null : clean(value) }, rev: serverTimestamp() };
+      await setDoc(doc(db, 'olympic', docId), data, { mergeFields: [new FieldPath(kind, id), 'rev'] });
     },
     async setConfig(patch) {
-      await setDoc(doc(db, 'olympic', 'config'), clean({ ...patch }), { merge: true });
+      await setDoc(doc(db, 'olympic', 'config'), clean(patch), { merge: true });
     },
-    async setRule(key, rule) {
-      await updateDoc(doc(db, 'olympic', 'rules'), { ['rules.' + key]: clean(rule) });
-    },
-    // Nạp toàn bộ dữ liệu gốc (lần đầu, hoặc khôi phục)
-    async seedAll(seed) {
+    // Ghi hàng loạt (khôi phục sao lưu): parts = { docId: { m: {...}, e: {...} } }
+    async replaceOverrides(parts) {
       const b = writeBatch(db);
-      b.set(doc(db, 'olympic', 'config'), clean({ meta: seed.meta, settings: seed.settings || {}, news: seed.news || [], seededAt: Date.now(), seedVersion: seed.version }));
-      b.set(doc(db, 'olympic', 'rules'), clean({ rules: seed.rules, general: seed.general }));
-      for (const s of SPORT_IDS) {
-        const events = {}, matches = {};
-        Object.values(seed.events).filter((e) => e.sport === s).forEach((e) => { events[e.id] = e; });
-        Object.values(seed.matches).filter((m) => events[m.ev]).forEach((m) => { const c = { ...m }; delete c.src; matches[m.id] = c; });
-        b.set(sportDoc(s), clean({ events, matches, rev: Date.now() }));
+      for (const id of OVERRIDE_DOCS) {
+        const p = parts[id];
+        if (p && (Object.keys(p.m || {}).length || Object.keys(p.e || {}).length)) b.set(doc(db, 'olympic', id), clean({ m: p.m || {}, e: p.e || {}, rev: Date.now() }));
+        else b.delete(doc(db, 'olympic', id));
       }
       await b.commit();
     },

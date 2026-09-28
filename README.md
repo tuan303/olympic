@@ -42,7 +42,7 @@ tools/                công cụ chuyển Excel → seed-data.js (không deploy)
 2. **Firestore → Rules**: dán toàn bộ `firestore.rules` → **Publish**. *(Rules KHÔNG tự deploy theo GitHub/Vercel — sửa file này xong phải dán lại.)*
 3. **Authentication → Sign-in method → Microsoft → Enable**: Application ID + Secret lấy từ Azure App registration của trường; trong Azure thêm Redirect URI `https://olympic-nshm-758ac.firebaseapp.com/__/auth/handler`.
 4. **Authentication → Settings → Authorized domains**: thêm tên miền website (vd `olympic.nshm.vn`, `olympic-xxx.vercel.app`).
-5. Mở website → **Quản trị** → đăng nhập bằng tài khoản quản trị cao nhất → tab **Dữ liệu** → **Nạp dữ liệu gốc lên máy chủ**.
+5. Không cần nạp dữ liệu: lịch gốc nằm sẵn trong web (`js/seed-data.js`), Firestore chỉ lưu phần Ban tổ chức cập nhật (kết quả, đổi lịch, thông báo) — mỗi lượt xem chỉ đọc vài KB.
 6. Tab **Quản trị viên**: cấp quyền cho giáo viên phụ trách từng môn (chỉ sửa được môn của mình).
 
 Quản trị cao nhất khai ở **2 chỗ phải khớp nhau**: `SUPER_ADMINS` trong `js/config.js` và hàm `isSuper()` trong `firestore.rules`.
