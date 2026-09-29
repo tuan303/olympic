@@ -53,10 +53,15 @@ export function evCaption(E, m, opt = {}) {
 // ---------- dòng trận kiểu "fixture" ----------
 // Một trận một dòng: [giờ] [môn] [vòng/bảng] Đội A [ô tỉ số] Đội B [sân].
 // Khung chứa hẹp (điện thoại, cột bên) tự chuyển sang 2 dòng nhờ container query.
+// Tên gọn cho khung hẹp: "Nguyễn Chí Phúc Nguyên" → "Phúc Nguyên"; cặp đôi rút từng người
+export const shortName = (s) => String(s || '').split('+').map((p) => { const w = p.trim().split(/\s+/).filter(Boolean); return w.length >= 3 ? w.slice(-2).join(' ') : w.join(' '); }).join(' + ');
+// Cặp đôi luôn dùng tên gọn (tên đầy đủ trong title); đơn: khung rộng tên đầy đủ, khung hẹp tên gọn
+const nameHtml = (full) => { const sh = shortName(full); if (full.includes('+')) return sh.split(' + ').map((x) => `<span class="pp">${esc(x)}</span>`).join('<i class="pl"> + </i>');
+  return sh === full ? esc(full) : `<span class="nf">${esc(full)}</span><span class="ns">${esc(sh)}</span>`; };
 function fxSide(r, side, cls) {
   if (!r) return `<div class="fx-team ${side}"></div>`;
   if (r.kind === 'team') return `<div class="fx-team ${side} ${cls}"><b>${esc(r.t)}</b>${r.via ? `<small>${esc(r.via)}</small>` : ''}</div>`;
-  if (r.kind === 'ath') return `<div class="fx-team ${side} ${cls}"><b>${esc(r.p || r.t)}</b>${r.p ? `<small>${esc(r.t)}${r.via ? ' · ' + esc(r.via) : ''}</small>` : ''}</div>`;
+  if (r.kind === 'ath') return `<div class="fx-team ${side} ${cls}" title="${esc(r.p || r.t)}${r.p ? ' · ' + esc(r.t) : ''}"><b>${nameHtml(r.p || r.t)}</b>${r.p ? `<small>${esc(r.t)}${r.via ? ' · ' + esc(r.via) : ''}</small>` : ''}</div>`;
   if (r.kind === 'bye') return `<div class="fx-team ${side} bye"><b>${esc(r.t || '—')}</b><small>không thi đấu</small></div>`;
   return `<div class="fx-team ${side} tbd"><b>${esc(r.label || 'Chưa xác định')}</b></div>`;
 }
@@ -71,7 +76,8 @@ function fxScore(E, m, st) {
   else if (st === 'cancel') box = `<div class="fx-score cancel">Hủy</div>`;
   else if (st === 'wo') box = `<div class="fx-score wo">Miễn đấu</div>`;
   else box = `<div class="fx-score sched">VS</div>`;
-  return `<div class="fx-mid">${box}${m.pen ? `<small class="fx-pen">${esc(m.pen)}</small>` : ''}</div>`;
+  const pen = !m.pen ? '' : /xử thua/i.test(m.pen) ? `<small class="fx-pen ff" title="${esc(m.pen)}">Xử thua</small>` : `<small class="fx-pen" title="${esc(m.pen)}">${esc(m.pen)}</small>`;
+  return `<div class="fx-mid">${box}${pen}</div>`;
 }
 export function matchRow(E, m, opt = {}) {
   const ev = E.events[m.ev] || {};
@@ -84,15 +90,17 @@ export function matchRow(E, m, opt = {}) {
     : opt.showDate
       ? `<span class="fx-when"><b>${esc(fmtDate(m.date))}</b><small>${esc(m.time || '')}</small></span>`
       : `<span class="fx-when"><b>${esc(m.time || '—')}</b><small>${esc(m.end || '')}</small></span>`;
+  // thông tin phụ: nội dung (Đơn nam…) · trận số · khối — cái quan trọng đứng trước để khi bị cắt vẫn còn
   const stage = [];
-  if (opt.grade !== false) stage.push('Khối ' + ev.grade);
   if (ev.catName) stage.push(ev.catName);
   const stg = capFirst(E.stageLabel(m));
   const no = ev.kind === 'ind' ? E.matchNo(m) : '';
+  if (no) stage.push(no);
+  if (opt.grade !== false) stage.push('Khối ' + ev.grade);
   return `<div class="fx ${m.stage === 'F' ? 'is-final' : ''}" data-match="${esc(m.id)}" tabindex="0" style="${sportVars(ev.sport)}">
     <div class="fx-top">${when}
       ${opt.showSport === false ? '' : `<span class="fx-sport">${SPORT_ICON[ev.sport] || ''}<span>${esc(sp.name || '')}</span></span>`}
-      <span class="fx-stage"><b>${esc(stg)}</b>${stage.length || no ? `<small>${esc([...stage, no].filter(Boolean).join(' · '))}</small>` : ''}</span>
+      <span class="fx-stage"><b>${esc(stg)}</b>${stage.length ? `<small>${esc(stage.join(' · '))}</small>` : ''}</span>
     </div>
     ${fxSide(A, 'a', ca)}${fxScore(E, m, st)}${fxSide(B, 'b', cb)}
     <span class="fx-venue ${opt.venue === false ? 'hide-narrow' : ''}" title="${esc(m.venue || '')}">${m.venue ? I.pin + '<span>' + esc(m.venue) + '</span>' : ''}</span>

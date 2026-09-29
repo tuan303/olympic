@@ -655,3 +655,29 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 .reg-row { width: 100%; border: 0; border-top: 1px solid var(--line-2); background: #fbfcfe; font: inherit; text-align: left; cursor: pointer; }
 .reg-row:hover { background: #f3f7ff; }
 .reg-row > .small:nth-child(2) { margin-right: auto; margin-left: 10px; }
+
+/* ---------- dòng trận: tên gọn, không xuống hàng ---------- */
+.fx-team .ns { display: none; }
+.fx-pen { max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-pen.ff { color: #b4232f; background: #fde8eb; padding: 1px 7px; border-radius: 99px; font-weight: 700; font-size: 10.5px; }
+@container (max-width: 720px) {
+  .fx { grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr) !important; column-gap: 10px; }
+  .fx-team .nf { display: none; }
+  .fx-team .ns { display: inline; }
+  .fx-team b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fx-team small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fx-stage { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .fx-stage b, .fx-stage small { display: inline; }
+  .fx-stage small { margin-left: 5px; }
+  .fx-score { min-width: 68px; height: 30px; }
+}
+@container (max-width: 520px) {
+  .fx-sport > span:not(.emo) { display: none; }
+  .fx-when small { font-size: 11.5px; }
+}
+.fx-team b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@container (max-width: 720px) {
+  .fx-team .pp { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .fx-team .pl { display: none; }
+}
+.fx-team .pl { font-style: normal; font-weight: 500; color: var(--muted); }
