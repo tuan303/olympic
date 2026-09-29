@@ -37,4 +37,4 @@ export const VENUE_RENAME = {
 };
 
 // Đổi số này mỗi khi sửa các file js/*.js để trình duyệt tải bản mới (không có bước build)
-export const ASSET_VER = '2026-09-29d';
+export const ASSET_VER = '2026-09-29e';
