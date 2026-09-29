@@ -1,5 +1,26 @@
-[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongro ghi "11" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
-[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongda ghi "9" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
-[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô karate ghi "2" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
-[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô caulong ghi "4" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
-[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô keoco ghi "10" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
+[BỎ QUA] KHỐI 1 dòng 198: Lê Trần Tuệ Anh (1A5) — "Chuyển trường"
+[BỎ QUA] KHỐI 3 dòng 223: Đặng Minh Tú (3A6) — "Con chuyển trường"
+[BỎ QUA] KHỐI 4 dòng 177: Nguyễn Mỹ Anh (4A4) — "HS chuyển trường"
+[BỎ QUA] KHỐI 06 dòng 41: Đặng Gia Hưng (6A0M) — "chuyển trường"
+[CHUYỂN LỚP] KHỐI 06 dòng 49: Phan Ngô Thảo My 6A0M → 6A0H — "Chuyển lớp 6A0H"
+[KIỂM TRA] KHỐI 06 dòng 49: Phan Ngô Thảo My (6A0H) ô bongro ghi "Chuyển lớp 6A0H" — không phải đánh dấu đăng ký, KHÔNG tính
+[BỎ QUA] KHỐI 07 dòng 188: Nguyễn Quang Huy (7A05) — "chuyển trường"
+[BỎ QUA] KHỐI 07 dòng 210: Nguyễn Đức Vinh (7A05) — "chuyển lớp"
+[ĐỔI TÊN] KHỐI 07 dòng 231: Nguyễn Minh → Nguyễn Đức Vinh (7A06) — "Nguyễn Minh Chuyển trường đổi thành Nguyễn Đức Vinh"
+[BỎ QUA] KHỐI 07 dòng 369: Nguyễn Gia Hân (7B03) — "HS chuyển trường"
+[CHUYỂN LỚP] KHỐI 08 dòng 5: Hà Trọng Bảo An 8A0 → 8A01 — "chuyển sang 8A01"
+[BỎ QUA] KHỐI 08 dòng 6: Đỗ Gia Bình (8A0) — "chuyển trường"
+[BỎ QUA] KHỐI 08 dòng 77: Trương Tiến Dũng (8A02) — "HS chuyển trường"
+[BỎ QUA] KHỐI 08 dòng 164: Cao Hoàng Ngân (8A04) — "hs chuyển trường"
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongro ghi "11" — có vẻ là số tổng của lớp, KHÔNG tính
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongda ghi "9" — có vẻ là số tổng của lớp, KHÔNG tính
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô karate ghi "2" — có vẻ là số tổng của lớp, KHÔNG tính
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô caulong ghi "4" — có vẻ là số tổng của lớp, KHÔNG tính
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô keoco ghi "10" — có vẻ là số tổng của lớp, KHÔNG tính
+[CHUYỂN LỚP] KHỐI 08 dòng 354: Lê Ngân Phúc 8B03 → 8B02 — "Đã chuyển sang 8B02"
+[BỎ QUA] KHỐI 08 dòng 386: Bạch Uyên Nhi (8B04) — "Nghỉ học"
+[BỎ QUA] KHỐI 09 dòng 47: Triệu Minh Dũng (9A01) — "Chuyển tr"
+[BỎ QUA] KHỐI 09 dòng 70: Trịnh Hữu Toàn (9A01) — "chuyển tr"
+[CHUYỂN LỚP] KHỐI 10 dòng 176: NGUYỄN NGỌC MAI 10S → 10L0 — "Học sinh đã chuyển sang 10L0 từ đầu năm"
+[BỎ QUA] KHỐI 12 dòng 66: TRẦN ANH THƯ (12L01) — "HS chuyển lớp"
+[BỎ QUA] KHỐI 12 dòng 69: VŨ ĐỖ ANH THƯ (12L01) — "HS chuyển trường"

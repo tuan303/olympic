@@ -39,6 +39,7 @@ function mark(v, sp) {
   const t = clean(v);
   if (!t || t === '0') return { on: false };
   if (/^x$/i.test(t)) return { on: true };
+  if (!/^\d/.test(t) && !/đơn|đôi/i.test(t)) return { on: false, bad: t }; // chữ lạ trong ô môn (ghi chú lọt cột)
   const m = t.match(/^(\d+)\D*(.*)$/);
   if (m) { const n = Number(m[1]); if (n === 1) return { on: true, note: m[2].replace(/[()]/g, '').trim() };
     if (n === 2 && sp === 'caulong') return { on: true, note: '2 nội dung' }; // cầu lông: đơn + đôi
@@ -68,15 +69,24 @@ for (const file of files) {
     const nCol = cols.filter((i) => i !== cCol).reduce((b, i) => (score(i, isName) > score(b, isName) ? i : b), cols.find((i) => i !== cCol));
     let nSheet = 0;
     body.forEach((r, ri) => {
-      const cls = normCls(r[cCol]);
-      const name = clean(r[nCol]);
+      let cls = normCls(r[cCol]);
+      let name = clean(r[nCol]);
       if (!isName(name)) return;
+      // Ghi chú trên dòng: chuyển trường / nghỉ học → bỏ; chuyển sang lớp X → tính cho lớp X; "đổi thành <tên>" → thay tên
+      const note = r.map(clean).filter((c) => /chuyển|nghỉ học|đổi thành|thôi học/i.test(c)).join(' · ');
+      if (note) {
+        const to = note.match(/(?:chuyển\s*(?:sang|lớp)|sang)\s*(\d{1,2}[A-Z][A-Z0-9]*)/i);
+        const rename = note.match(/đổi thành\s+(.+)$/i);
+        if (rename) { report.push(`[ĐỔI TÊN] ${sn} dòng ${hi + ri + 2}: ${name} → ${clean(rename[1])} (${cls}) — "${note}"`); name = clean(rename[1]); }
+        else if (to && CLASSES.has(normCls(to[1]))) { report.push(`[CHUYỂN LỚP] ${sn} dòng ${hi + ri + 2}: ${name} ${cls} → ${normCls(to[1])} — "${note}"`); cls = normCls(to[1]); }
+        else { report.push(`[BỎ QUA] ${sn} dòng ${hi + ri + 2}: ${name} (${cls}) — "${note}"`); return; }
+      }
       if (!CLASSES.has(cls)) { if (cls) report.push(`[LỚP LẠ] ${sn} dòng ${hi + ri + 2}: "${clean(r[cCol])}" — ${name}`); return; }
       nSheet++;
       const g = gCol >= 0 ? gender(r[gCol]) : '';
       for (const [i, sp] of sportCols) {
         const k = mark(r[i], sp);
-        if (k.bad) { report.push(`[KIỂM TRA] ${sn} dòng ${hi + ri + 2}: ${name} (${cls}) ô ${sp} ghi "${k.bad}" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký`); continue; }
+        if (k.bad) { report.push(`[KIỂM TRA] ${sn} dòng ${hi + ri + 2}: ${name} (${cls}) ô ${sp} ghi "${k.bad}" — ${/^\d/.test(k.bad) ? 'có vẻ là số tổng của lớp' : 'không phải đánh dấu đăng ký'}, KHÔNG tính`); continue; }
         if (!k.on) continue;
         const key = `${sp}-k${grade}|${cls}`;
         const item = { n: titleCase(name) };
