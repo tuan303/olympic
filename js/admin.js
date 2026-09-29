@@ -59,8 +59,9 @@ function loginView(app, S) {
     <img src="assets/logo.svg" alt="">
     <h1 style="font-size:22px;font-weight:700">Quản trị giải Olympic</h1>
     <p class="muted">Dành cho Ban tổ chức và giáo viên phụ trách môn để cập nhật lịch, kết quả thi đấu.</p>
-    ${live ? `<button class="ms-btn" id="login"><span class="ms-logo"><i style="background:#f25022"></i><i style="background:#7fba00"></i><i style="background:#00a4ef"></i><i style="background:#ffb900"></i></span>Đăng nhập bằng Microsoft 365 của trường</button>
-      <p class="muted small" style="margin-top:14px">Chỉ tài khoản @hoangmaistarschool.edu.vn đã được cấp quyền mới cập nhật được.</p>
+    ${live ? `<button class="ms-btn" id="login"><span class="ms-logo"><i style="background:#f25022"></i><i style="background:#7fba00"></i><i style="background:#00a4ef"></i><i style="background:#ffb900"></i></span>Đăng nhập bằng Microsoft 365</button>
+      ${S.denied ? `<div class="banner warn" style="border-radius:10px;margin-top:14px;padding:10px 12px;text-align:left"><b>${esc(S.denied)}</b> không có quyền quản trị giải nên đã bị đăng xuất. Nhờ quản trị cao nhất (Tổ CNTT) cấp quyền rồi đăng nhập lại.</div>` : ''}
+      <p class="muted small" style="margin-top:14px">Chỉ những email được Ban tổ chức cấp quyền mới đăng nhập được.</p>
       <p class="small" style="margin-top:18px"><a href="?demo=1#/quan-tri" style="color:var(--royal);font-weight:700">Tập dượt nhập kết quả (không ảnh hưởng dữ liệu thật) →</a></p>`
     : `<button class="btn primary" id="login">${I.gear} Vào quản trị (chế độ xem thử)</button>
       <p class="muted small" style="margin-top:14px">Chưa kết nối máy chủ: mọi thay đổi chỉ lưu trên trình duyệt này để chạy thử. Khi kết nối Firebase, trang này dùng đăng nhập Microsoft 365 của trường.</p>`}

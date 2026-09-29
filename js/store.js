@@ -95,7 +95,9 @@ export async function init() {
   fb.watchAuth(async (u) => {
     if (!u) { set({ user: null, role: null, authReady: true }); return; }
     const role = await roleOf(u.email);
-    set({ user: u, role, authReady: true });
+    // Chỉ email có trong danh sách quản trị mới được giữ phiên đăng nhập
+    if (!role) { try { await fb.signOut(); } catch (e) { /* bỏ qua */ } set({ user: null, role: null, authReady: true, denied: u.email }); return; }
+    set({ user: u, role, authReady: true, denied: '' });
   });
 }
 async function roleOf(email) {
