@@ -5,7 +5,7 @@ import * as store from './store.js';
 import { esc, todayISO, fmtDate, fmtFull, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, fold, ls, debounce } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass } from './engine.js';
 import { SPORT_ICON, I, heroArt } from './icons.js';
-import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
+import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, drawBrackets, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
 import { ASSET_VER } from './config.js';
 
 const app = document.getElementById('app');
@@ -314,6 +314,7 @@ function viewResults(S) {
     ${content}
   </div>`;
   app.querySelectorAll('[data-toggle-done]').forEach((b) => b.addEventListener('click', () => { savePref({ onlyDone: !pref.onlyDone }); render(); }));
+  drawBrackets(app);
 }
 function formatText(ev) {
   const n = Object.keys(ev.groups || {}).length;

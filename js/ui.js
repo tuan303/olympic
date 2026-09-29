@@ -156,21 +156,43 @@ export function standingsTable(E, evId, g, opt = {}) {
 }
 
 // ---------- ô trận trong nhánh đấu ----------
+// trận nguồn của mỗi bên (Thắng trận X / cặp trận) — để vẽ đường nối
+const feeders = (m, k) => {
+  const r = m[k] && m[k].ref;
+  if (!r) return '';
+  if (r[0] === 'W') return r.slice(2);
+  if (r[0] === 'T') return r.slice(2);
+  return '';
+};
 export function bracketBox(E, m, opt = {}) {
   const [A, B] = E.sidesOf(m);
   const w = E.winner(m);
   const st = E.status(m);
+  const done = isDone(m);
   const line = (r, side) => {
     const cls = r.kind === 'tbd' ? 't' : r.kind === 'bye' ? 'y' : w === side ? 'w' : w && w !== 'dead' ? 'l' : '';
     const name = r.kind === 'team' ? esc(r.t) : r.kind === 'ath' ? `${esc(r.p || r.t)} ${r.p ? `<small>${esc(r.t)}</small>` : ''}` : r.kind === 'bye' ? `${esc(r.t || '')} (không thi đấu)` : esc(r.label || 'Chưa xác định');
-    const sc = isDone(m) ? `<b>${side === 'a' ? m.sa : m.sb}</b>` : '';
-    return `<div class="bl ${cls}"><span>${name}</span>${sc}</div>`;
+    const sc = done ? `<b class="sc">${side === 'a' ? m.sa : m.sb}</b>` : '';
+    return `<div class="bl r${side} ${cls}"><span>${name}</span>${sc}</div>`;
   };
   const cap = opt.cap != null ? opt.cap : `${capFirst(E.stageLabel(m))}${E.matchNo(m) ? ' · ' + E.matchNo(m) : ''}`;
-  return `<div class="bm ${m.stage === 'F' ? 'final' : ''} ${st === 'wo' ? 'wo' : ''}" data-match="${esc(m.id)}">
-    <div class="cap"><span>${esc(cap)}</span><span>${esc(m.date ? fmtDate(m.date) : '')}${m.time ? ' ' + esc(m.time) : ''}</span></div>
+  const live = st === 'live' ? '<i class="blive">Đang đấu</i>' : '';
+  return `<div class="bm ${m.stage === 'F' ? 'final' : ''} ${st === 'wo' ? 'wo' : ''} ${done ? 'done' : ''}" data-match="${esc(m.id)}" data-fa="${esc(feeders(m, 'a'))}" data-fb="${esc(feeders(m, 'b'))}">
+    <div class="cap"><span class="stg">${esc(cap)}</span>${live}<span>${esc(m.date ? fmtDate(m.date) : '')}${m.time ? ' · ' + esc(m.time) : ''}</span></div>
     ${line(A, 'a')}${line(B, 'b')}</div>`;
 }
+// Ô "Vô địch" cuối nhánh
+function championCol(E, F) {
+  let body = '<div class="bchamp empty"><span class="cup">🏆</span><b>Chờ chung kết</b><small>Nhà vô địch hiện ở đây</small></div>';
+  const w = F ? E.winner(F) : null;
+  if (w === 'a' || w === 'b') {
+    const r = E.sidesOf(F)[w === 'a' ? 0 : 1];
+    const main = r.kind === 'ath' ? (r.p || r.t) : r.t;
+    body = `<div class="bchamp"><span class="cup">🏆</span><b>${esc(main || '')}</b>${r.kind === 'ath' && r.p ? `<small>Lớp ${esc(r.t)}</small>` : '<small>Vô địch</small>'}</div>`;
+  }
+  return `<div class="bcol champ"><h4>Vô địch</h4><div class="bcol-l">${body}</div></div>`;
+}
+const colHtml = (E, h, list, final) => `<div class="bcol ${final ? 'fin' : ''}"><h4>${h}</h4><div class="bcol-l">${list.map((m) => bracketBox(E, m)).join('')}</div></div>`;
 export function teamBracket(E, evId) {
   const ev = E.events[evId];
   const ms = E.matchesOf(evId);
@@ -179,17 +201,19 @@ export function teamBracket(E, evId) {
   if (ev.format === 'QF') cols.push(['Tứ kết', pick('QF')]);
   cols.push(['Bán kết', pick('SF')], ['Chung kết', pick('F')]);
   if (!cols.some(([, l]) => l.length)) return '';
-  return `<div class="bracket">${cols.map(([h, list]) => `<div class="bcol"><h4>${h}</h4><div class="bcol-l">${list.map((m) => bracketBox(E, m)).join('')}</div></div>`).join('')}</div>`;
+  return `<div class="bracket" style="${sportVars(ev.sport)}">${cols.map(([h, list]) => colHtml(E, h, list, h === 'Chung kết')).join('')}${championCol(E, pick('F')[0])}</div>`;
 }
 // Nhánh đấu cá nhân: xếp cột theo độ sâu tính từ chung kết
 export function indBracket(E, evId) {
   const ev = E.events[evId];
   const F = E.finalMatch(ev);
   if (!F) return '';
-  const depth = {};
+  const depth = {}, order = {};
+  let seq = 0;
   const walk = (m, d) => {
     if (!m || depth[m.id] != null) return;
     depth[m.id] = d;
+    order[m.id] = seq++; // thứ tự duyệt cây: 2 trận nguồn của một trận luôn nằm cạnh nhau
     for (const k of ['a', 'b']) {
       const r = m[k] && m[k].ref;
       if (!r) continue;
@@ -203,11 +227,50 @@ export function indBracket(E, evId) {
   for (let d = max; d >= 0; d--) {
     const list = E.matchesOf(evId).filter((m) => depth[m.id] === d && !(E.status(m) === 'wo' && d >= 2 && E.winner(m) === 'dead'));
     if (!list.length) continue;
-    list.sort((a, b) => (a.branch || '').localeCompare(b.branch || '') || (a.n || 0) - (b.n || 0));
+    list.sort((a, b) => order[a.id] - order[b.id]);
     const name = d === 0 ? 'Chung kết' : d === 1 ? 'Bán kết' : d === 2 ? 'Tứ kết' : `Vòng ${max - d + 1}`;
-    cols.push(`<div class="bcol"><h4>${name}</h4><div class="bcol-l">${list.map((m) => bracketBox(E, m)).join('')}</div></div>`);
+    cols.push(colHtml(E, name, list, d === 0));
   }
-  return `<div class="bracket">${cols.join('')}</div>`;
+  return `<div class="bracket" style="${sportVars(ev.sport)}">${cols.join('')}${championCol(E, F)}</div>`;
+}
+// Vẽ đường nối giữa các vòng (SVG phủ dưới các ô trận); tự vẽ lại khi khung đổi cỡ
+const bracketRO = typeof ResizeObserver !== 'undefined' ? new ResizeObserver((es) => es.forEach((e) => drawLines(e.target))) : null;
+function drawLines(br) {
+  if (!br.isConnected) { bracketRO && bracketRO.unobserve(br); return; }
+  const old = br.querySelector(':scope > svg.blines'); if (old) old.remove();
+  const R = br.getBoundingClientRect();
+  const ox = -R.left - br.clientLeft + br.scrollLeft, oy = -R.top - br.clientTop + br.scrollTop;
+  const paths = [];
+  br.querySelectorAll('.bm').forEach((bm) => {
+    for (const k of ['a', 'b']) {
+      const ids = (bm.dataset['f' + k] || '').split(',').filter(Boolean);
+      const row = bm.querySelector('.r' + k);
+      if (!row) continue;
+      const rr = row.getBoundingClientRect();
+      const tx = rr.left + ox, ty = rr.top + rr.height / 2 + oy;
+      ids.forEach((id) => {
+        const src = br.querySelector(`.bm[data-match="${CSS.escape(id)}"]`);
+        if (!src) return;
+        const sr = src.getBoundingClientRect();
+        const sx = sr.right + ox, sy = sr.top + sr.height / 2 + oy;
+        if (sx >= tx) return;
+        const mx = Math.round(sx + (tx - sx) / 2);
+        const on = src.classList.contains('done');
+        paths.push(`<path class="${on ? 'on' : ''}" d="M${sx} ${sy}H${mx}V${ty}H${tx}"/>`);
+      });
+    }
+  });
+  // nối chung kết → ô vô địch
+  const fin = br.querySelector('.bcol.fin .bm'), ch = br.querySelector('.bchamp');
+  if (fin && ch) {
+    const a = fin.getBoundingClientRect(), b = ch.getBoundingClientRect();
+    const sy = a.top + a.height / 2 + oy;
+    paths.push(`<path class="${ch.classList.contains('empty') ? '' : 'on'}" d="M${a.right + ox} ${sy}H${b.left + ox}"/>`);
+  }
+  br.insertAdjacentHTML('afterbegin', `<svg class="blines" width="${br.scrollWidth}" height="${br.scrollHeight}" aria-hidden="true">${paths.join('')}</svg>`);
+}
+export function drawBrackets(root = document) {
+  root.querySelectorAll('.bracket').forEach((br) => { drawLines(br); bracketRO && bracketRO.observe(br); });
 }
 
 // ---------- bục huy chương ----------
