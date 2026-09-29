@@ -49,6 +49,10 @@ function mark(v, sp) {
 
 const rosters = {};
 const report = [];
+// BTC xác nhận lại các dòng file gốc bị lỗi: '<sheet>|<lớp>|<họ tên>' → các môn đăng ký (thay cho ô trong file)
+const MANUAL = {
+  'KHỐI 08|8A04|Trần Nhật Quỳnh Chi': ['keoco'], // dòng 179 bị ghi đè số tổng của lớp
+};
 let students = 0;
 for (const file of files) {
   const wb = XLSX.readFile(file);
@@ -84,8 +88,10 @@ for (const file of files) {
       if (!CLASSES.has(cls)) { if (cls) report.push(`[LỚP LẠ] ${sn} dòng ${hi + ri + 2}: "${clean(r[cCol])}" — ${name}`); return; }
       nSheet++;
       const g = gCol >= 0 ? gender(r[gCol]) : '';
+      const fix = MANUAL[`${sn}|${cls}|${name}`];
+      if (fix) report.push(`[BTC XÁC NHẬN] ${sn} dòng ${hi + ri + 2}: ${name} (${cls}) đăng ký ${fix.join(', ')}`);
       for (const [i, sp] of sportCols) {
-        const k = mark(r[i], sp);
+        const k = fix ? { on: fix.includes(sp) } : mark(r[i], sp);
         if (k.bad) { report.push(`[KIỂM TRA] ${sn} dòng ${hi + ri + 2}: ${name} (${cls}) ô ${sp} ghi "${k.bad}" — ${/^\d/.test(k.bad) ? 'có vẻ là số tổng của lớp' : 'không phải đánh dấu đăng ký'}, KHÔNG tính`); continue; }
         if (!k.on) continue;
         const key = `${sp}-k${grade}|${cls}`;
