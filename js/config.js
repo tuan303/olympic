@@ -32,7 +32,9 @@ export const VENUE_RENAME = {
   'Sân thầy Vũ Thành': 'Đường Pitch (Canteen)',
   'Sân thầy Bình': 'Đường Pitch (Bể cá)',
   'Sân cô Bi': 'Đường Pitch (Cổng 1)',
+  'Đường PIT trước sảnh chính': 'Đường Pitch (Trước sảnh chính)',
+  'Đường PIT cạnh sân bóng đá THCS': 'Đường Pitch (Cạnh sân bóng đá THCS)',
 };
 
 // Đổi số này mỗi khi sửa các file js/*.js để trình duyệt tải bản mới (không có bước build)
-export const ASSET_VER = '2026-09-29b';
+export const ASSET_VER = '2026-09-29c';
