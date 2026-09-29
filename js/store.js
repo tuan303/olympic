@@ -4,7 +4,7 @@
 //  - Có Firebase: thay đổi lưu trên Firestore, mọi người thấy ngay (thời gian thực).
 //  - ?demo=1 hoặc chưa cấu hình Firebase: thay đổi chỉ lưu trên trình duyệt này.
 // ============================================================
-import { FIREBASE_CONFIG as FB_CFG, SUPER_ADMINS, AUTH_TENANT, ASSET_VER, SCHOOL_DOMAIN } from './config.js';
+import { FIREBASE_CONFIG as FB_CFG, SUPER_ADMINS, AUTH_TENANT, ASSET_VER, SCHOOL_DOMAIN, VENUE_RENAME } from './config.js';
 import { ls, clone } from './util.js';
 import { createEngine } from './engine.js';
 
@@ -49,7 +49,7 @@ function compose(parts) {
     const d = parts[id];
     if (!d) continue;
     for (const [k, e] of Object.entries(d.e || {})) if (e) db.events[k] = e;
-    for (const [k, m] of Object.entries(d.m || {})) { if (m === null) delete db.matches[k]; else db.matches[k] = m; }
+    for (const [k, m] of Object.entries(d.m || {})) { if (m === null) delete db.matches[k]; else db.matches[k] = m && VENUE_RENAME[m.venue] ? { ...m, venue: VENUE_RENAME[m.venue] } : m; }
   }
   return db;
 }

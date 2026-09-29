@@ -26,5 +26,13 @@ export const SUPER_ADMINS = [
   'it@hoangmaistarschool.edu.vn',
 ];
 
+// Đổi tên sân: kết quả BTC đã lưu trên Firestore vẫn mang tên cũ → hiển thị theo tên mới
+export const VENUE_RENAME = {
+  'Sân cô Bi – thầy Vũ Thành': 'Đường Pitch (Cổng 1 – Canteen)',
+  'Sân thầy Vũ Thành': 'Đường Pitch (Canteen)',
+  'Sân thầy Bình': 'Đường Pitch (Bể cá)',
+  'Sân cô Bi': 'Đường Pitch (Cổng 1)',
+};
+
 // Đổi số này mỗi khi sửa các file js/*.js để trình duyệt tải bản mới (không có bước build)
-export const ASSET_VER = '2026-09-29a';
+export const ASSET_VER = '2026-09-29b';
