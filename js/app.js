@@ -568,4 +568,6 @@ window.addEventListener('hashchange', () => { route = parseHash(); closeModal();
 store.onChange(() => { if (route.name === 'quan-tri' && adminMod && adminMod.isBusy && adminMod.isBusy()) { adminMod.notifyUpdate && adminMod.notifyUpdate(); return; } render(); });
 route = parseHash();
 render();
+window.__olyBooted = true;
+try { sessionStorage.removeItem('olympic-boot-retry'); } catch (e) { /* bỏ qua */ }
 store.init().catch((e) => { console.error(e); app.innerHTML = `<div class="wrap page"><div class="card empty-box">${I.info}<b>Không tải được dữ liệu</b>${esc(e.message)}</div></div>`; });

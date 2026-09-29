@@ -36,5 +36,6 @@ export const VENUE_RENAME = {
   'Đường PIT cạnh sân bóng đá THCS': 'Đường Pitch (Cạnh sân bóng đá THCS)',
 };
 
-// Đổi số này mỗi khi sửa các file js/*.js để trình duyệt tải bản mới (không có bước build)
-export const ASSET_VER = '2026-09-29k';
+// Phiên bản tài nguyên: đọc từ import map trong index.html (config.js được nạp dạng config.js?v=…).
+// Khi phát hành chỉ cần đổi các "?v=…" trong index.html. Giá trị dự phòng dùng cho trình duyệt rất cũ.
+export const ASSET_VER = new URL(import.meta.url).searchParams.get('v') || '2026-09-29l';

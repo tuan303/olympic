@@ -24,7 +24,7 @@
 index.html            khung trang
 assets/app.css        giao diện (màu nhận diện: navy #083586, đỏ #ED213C, vàng #FDD132, lá #3FA856, trời #41BBFF)
 assets/logo.svg       logo trường · assets/key-visual.jpg ảnh chia sẻ
-js/config.js          cấu hình Firebase, tenant Microsoft, quản trị cao nhất, ASSET_VER
+js/config.js          cấu hình Firebase, tenant Microsoft, quản trị cao nhất (ASSET_VER đọc từ index.html)
 js/app.js             điều hướng + các trang công khai
 js/admin.js           trang quản trị (tải khi cần)
 js/engine.js          lõi: xếp hạng theo điều lệ, tự điền đội vòng trong, huy chương
@@ -55,7 +55,7 @@ npm i xlsx
 node build.js "<đường dẫn thư mục OLYMPIC THỂ THAO 26.27>"
 ```
 
-Sinh lại `js/seed-data.js` và `tools/extract-report.txt` (các chỗ file gốc lệch/thiếu). Sau đó tăng `ASSET_VER` trong `js/config.js` và `?v=` trong `index.html`. **Lưu ý:** dữ liệu gốc chỉ dùng để nạp lần đầu; khi giải đang chạy, sửa lịch trên trang Quản trị (nạp lại dữ liệu gốc sẽ xóa kết quả đã nhập).
+Sinh lại `js/seed-data.js` và `tools/extract-report.txt` (các chỗ file gốc lệch/thiếu). Sau đó đổi **tất cả** `?v=…` trong `index.html` (import map + app.js + app.css) — `config.js` tự đọc phiên bản từ đó. Mọi file JS đều được nạp kèm phiên bản, nên trình duyệt không bao giờ dùng lẫn file cũ và mới. **Lưu ý:** dữ liệu gốc chỉ dùng để nạp lần đầu; khi giải đang chạy, sửa lịch trên trang Quản trị (nạp lại dữ liệu gốc sẽ xóa kết quả đã nhập).
 
 ## Danh sách học sinh đăng ký (môn đồng đội + cá nhân)
 

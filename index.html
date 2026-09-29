@@ -14,7 +14,39 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/app.css?v=2026-09-29k">
+  <!-- Mọi file JS đều kèm phiên bản: trình duyệt không thể dùng lẫn file cũ/mới (gây trắng trang).
+       Khi phát hành: đổi TẤT CẢ "?v=…" trong file này (config.js tự đọc phiên bản từ đây). -->
+  <script type="importmap">
+  { "imports": {
+    "./js/app.js": "./js/app.js?v=2026-09-29l",
+    "./js/admin.js": "./js/admin.js?v=2026-09-29l",
+    "./js/config.js": "./js/config.js?v=2026-09-29l",
+    "./js/engine.js": "./js/engine.js?v=2026-09-29l",
+    "./js/firebase.js": "./js/firebase.js?v=2026-09-29l",
+    "./js/icons.js": "./js/icons.js?v=2026-09-29l",
+    "./js/store.js": "./js/store.js?v=2026-09-29l",
+    "./js/ui.js": "./js/ui.js?v=2026-09-29l",
+    "./js/util.js": "./js/util.js?v=2026-09-29l"
+  } }
+  </script>
+  <script>
+    // Lưới an toàn: nếu mã trang không khởi động được (file cũ trong bộ nhớ đệm, mạng chập chờn) → tự tải lại 1 lần, sau đó hiện nút tải lại
+    (function () {
+      var KEY = 'olympic-boot-retry', done = false;
+      function fail() {
+        if (done || window.__olyBooted) return; done = true;
+        var n = 0; try { n = Number(sessionStorage.getItem(KEY) || 0); sessionStorage.setItem(KEY, n + 1); } catch (e) { n = 1; }
+        if (n < 1) { location.reload(); return; }
+        var app = document.getElementById('app');
+        if (app) app.innerHTML = '<div style="max-width:460px;margin:60px auto;padding:28px 22px;text-align:center;background:#fff;border:1px solid #e2e7f0;border-radius:14px"><b style="font-size:18px">Trang vừa được cập nhật</b><p style="color:#66748f">Vui lòng tải lại trang để dùng phiên bản mới.</p><button onclick="try{sessionStorage.removeItem(\'' + KEY + '\')}catch(e){};location.reload()" style="height:42px;padding:0 20px;border-radius:10px;border:0;background:#083586;color:#fff;font-weight:700;font-size:15px;cursor:pointer">Tải lại trang</button></div>';
+      }
+      window.addEventListener('error', function (e) {
+        if (/module|export|import/i.test(String(e && e.message || ''))) fail();
+      });
+      window.addEventListener('load', function () { setTimeout(function () { if (!window.__olyBooted) fail(); }, 8000); });
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/app.css?v=2026-09-29l">
 </head>
 <body>
   <header class="topbar">
@@ -43,6 +75,6 @@
   <nav class="tabbar" aria-label="Điều hướng nhanh"></nav>
   <div id="modal-root"></div>
   <noscript><div style="padding:20px;text-align:center">Trang cần bật JavaScript để hiển thị lịch thi đấu.</div></noscript>
-  <script type="module" src="js/app.js?v=2026-09-29k"></script>
+  <script type="module" src="js/app.js?v=2026-09-29l"></script>
 </body>
 </html>
