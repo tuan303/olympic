@@ -622,3 +622,28 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 .bchamp.empty .cup { filter: grayscale(1); opacity: .45; }
 .bchamp.empty b { color: #7d8aa1; font-size: 14px; }
 .bchamp.empty small { color: #9aa5b8; font-weight: 500; }
+
+/* ---------- danh sách VĐV đội ---------- */
+.team-btn { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-align: left; }
+.team-btn:hover { color: var(--royal); text-decoration: underline; text-underline-offset: 3px; }
+.team-btn .rcount { font-style: normal; font-size: 10.5px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: #eaf0fb; color: var(--navy); display: inline-grid; place-items: center; }
+.roster { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+.roster li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; background: #f6f8fc; border: 1px solid var(--line-2); min-width: 0; }
+.roster .no { flex: none; min-width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--navy); color: #fff; font-weight: 700; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.roster .nm { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.roster-empty { padding: 14px; border-radius: 10px; background: #f7f9fc; border: 1px dashed #cfd8e6; color: var(--muted); font-size: 13.5px; text-align: center; }
+.roster-pair { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-2); }
+.roster-pair h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+.roster-pair .roster { grid-template-columns: 1fr; }
+.roster-pair .roster li { padding: 5px 8px; }
+.roster-pair .roster .no { min-width: 24px; height: 24px; font-size: 11.5px; }
+.roster-pair .roster .nm { font-size: 13.5px; }
+.roster-h { font-weight: 800; font-size: 15px; margin-bottom: 6px; color: var(--navy); }
+.roster-pair .grid2 { gap: 12px; }
+.roster-btn { height: 26px; padding: 0 9px; font-size: 12px; }
+@media (max-width: 520px) { .roster { grid-template-columns: 1fr; } .roster-pair .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.roster-grid .field { padding: 12px; }
+.roster-grid textarea { width: 100%; font-size: 14px; line-height: 1.5; }
+.roster-grid .rc { font-size: 12px; color: var(--muted); font-weight: 600; }
+.roster .no.idx { background: #e3e9f4; color: #4d5a73; }

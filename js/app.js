@@ -5,7 +5,7 @@ import * as store from './store.js';
 import { esc, todayISO, fmtDate, fmtFull, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, fold, ls, debounce } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass } from './engine.js';
 import { SPORT_ICON, I, heroArt } from './icons.js';
-import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, drawBrackets, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
+import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, drawBrackets, openRoster, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
 import { ASSET_VER } from './config.js';
 
 const app = document.getElementById('app');
@@ -451,7 +451,8 @@ function viewClass(S) {
     const st = E.standings(e.id, grp);
     const row = st.rows.find((r) => r.t === cls);
     const pod = E.podium(e.id).find((p) => p.side.t === cls);
-    return `<a class="sum-row" href="#/ket-qua/${e.sport}/${e.grade}"><div style="display:flex;gap:10px;align-items:center">${sportTag(e.sport)}<span class="small">${e.format === 'RR' ? 'Vòng tròn' : 'Bảng ' + esc(grp)} · hạng <b>${row ? row.rank : '–'}</b>/${st.rows.length} · ${row ? row.pts : 0} điểm${pod ? ` · <b>${pod.rank === 1 ? 'Vô địch' : pod.rank === 2 ? 'Á quân' : 'Hạng Ba'}</b>` : ''}</span></div><span class="small muted nowrap">${row ? `${row.w}T ${e.sport === 'bongda' ? row.d + 'H ' : ''}${row.l}B` : ''} ${I.right}</span></a>`;
+    const nR = E.rosterOf(e.id, cls).length;
+    return `<a class="sum-row" href="#/ket-qua/${e.sport}/${e.grade}"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${sportTag(e.sport)}<button class="btn sm roster-btn" data-roster="${esc(e.id + '|' + cls)}">${I.users} ${nR ? nR + ' VĐV' : 'Danh sách'}</button><span class="small">${e.format === 'RR' ? 'Vòng tròn' : 'Bảng ' + esc(grp)} · hạng <b>${row ? row.rank : '–'}</b>/${st.rows.length} · ${row ? row.pts : 0} điểm${pod ? ` · <b>${pod.rank === 1 ? 'Vô địch' : pod.rank === 2 ? 'Á quân' : 'Hạng Ba'}</b>` : ''}</span></div><span class="small muted nowrap">${row ? `${row.w}T ${e.sport === 'bongda' ? row.d + 'H ' : ''}${row.l}B` : ''} ${I.right}</span></a>`;
   }).join('');
   const inds = new Map();
   Object.values(E.matches).forEach((m) => { const ev = E.events[m.ev]; if (!ev || ev.kind !== 'ind') return; E.sidesOf(m).forEach((r) => { if (r.kind === 'ath' && r.t === cls && !r.via) { const key = ev.id + '|' + r.p; inds.set(key, { ev, p: r.p }); } }); });
@@ -543,6 +544,13 @@ document.addEventListener('click', async (e) => {
     closeModal();
     if (!adminMod) adminMod = await import('./admin.js?v=' + ASSET_VER);
     adminMod.openEditor(id, { store, render });
+    return;
+  }
+  const ros = e.target.closest('[data-roster]');
+  if (ros) {
+    e.preventDefault();
+    const [evId, cls] = ros.dataset.roster.split('|');
+    openRoster(store.getState().engine, evId, cls);
     return;
   }
   const row = e.target.closest('[data-match]');

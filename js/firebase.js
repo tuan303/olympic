@@ -4,7 +4,8 @@
 //  Lịch gốc nằm trong js/seed-data.js (phục vụ tĩnh qua Vercel, không tốn Firestore).
 //  Firestore CHỈ lưu phần thay đổi so với lịch gốc:
 //    olympic/config            → meta, settings (cách tính điểm), news (thông báo), rules (điều lệ sửa)
-//    olympic/r_<môn>_<cấp>     → { m: { <mã trận>: trận | null(đã xóa) }, e: { <mã nội dung>: nội dung } }
+//    olympic/r_<môn>_<cấp>     → { m: { <mã trận>: trận | null(đã xóa) }, e: { <mã nội dung>: nội dung },
+//                                    r: { '<mã nội dung>|<lớp>': { list: [{ n, no }] } } (danh sách VĐV đội) }
 //                                (15 document: 5 môn × TH/THCS/THPT — mỗi lần nhập kết quả chỉ gửi lại 1 document nhỏ)
 //    admins/{email}            → { all: true } hoặc { sports: { bongda: true, ... } }
 //    logs/{auto}               → nhật ký thay đổi
@@ -48,7 +49,7 @@ export async function connect(config) {
       const b = writeBatch(db);
       for (const id of OVERRIDE_DOCS) {
         const p = parts[id];
-        if (p && (Object.keys(p.m || {}).length || Object.keys(p.e || {}).length)) b.set(doc(db, 'olympic', id), clean({ m: p.m || {}, e: p.e || {}, rev: Date.now() }));
+        if (p && (Object.keys(p.m || {}).length || Object.keys(p.e || {}).length || Object.keys(p.r || {}).length)) b.set(doc(db, 'olympic', id), clean({ m: p.m || {}, e: p.e || {}, r: p.r || {}, rev: Date.now() }));
         else b.delete(doc(db, 'olympic', id));
       }
       await b.commit();

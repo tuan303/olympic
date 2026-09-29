@@ -43,12 +43,13 @@ function compose(parts) {
   const db = {
     meta: { ...s.meta, ...(cfg.meta || {}) }, settings: cfg.settings || {}, news: cfg.news || [],
     rules: { ...s.rules, ...(cfg.rules || {}) }, general: s.general, sourceNotes: s.sourceNotes || [],
-    events: { ...s.events }, matches: { ...s.matches },
+    events: { ...s.events }, matches: { ...s.matches }, rosters: {},
   };
   for (const id of OVERRIDE_DOCS) {
     const d = parts[id];
     if (!d) continue;
     for (const [k, e] of Object.entries(d.e || {})) if (e) db.events[k] = e;
+    for (const [k, r] of Object.entries(d.r || {})) if (r && r.list && r.list.length) db.rosters[k] = r;
     for (const [k, m] of Object.entries(d.m || {})) { if (m === null) delete db.matches[k]; else db.matches[k] = m && VENUE_RENAME[m.venue] ? { ...m, venue: VENUE_RENAME[m.venue] } : m; }
   }
   return db;
@@ -175,6 +176,20 @@ export async function saveEvent(ev, action = 'Sửa nội dung') {
   await fb.setOverride(d, 'e', ev.id, ev);
   fb.addLog({ by: who(), action, ev: ev.id });
 }
+// Danh sách VĐV của một lớp trong một nội dung đồng đội; list rỗng = xóa
+export async function saveRoster(evId, cls, list) {
+  const ev = state.db.events[evId];
+  if (!ev) throw new Error('Không thấy nội dung.');
+  if (!canEdit(ev.sport)) throw new Error('Bạn không có quyền sửa môn này.');
+  const key = evId + '|' + cls;
+  const clean = (list || []).map((x) => ({ n: String(x.n || '').trim(), no: String(x.no || '').trim() })).filter((x) => x.n);
+  const val = clean.length ? { list: clean, upd: Date.now(), by: who() } : null;
+  const d = docOf(ev);
+  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).r ||= {})[key] = val; }); return; }
+  requireFb();
+  await fb.setOverride(d, 'r', key, val);
+  fb.addLog({ by: who(), action: `Danh sách VĐV ${cls} (${clean.length})`, ev: evId });
+}
 export async function saveConfig(patch, action = 'Sửa cấu hình') {
   if (!(state.role && (state.role.all || state.role.super))) throw new Error('Cần quyền quản trị toàn giải.');
   if (state.mode === 'local') { localWrite((o) => { o.config = { ...(o.config || {}), ...patch }; }); return; }
@@ -201,6 +216,7 @@ function diffFromSeed(data) {
     const ev = evOf(m); if (ev) put(ev, 'm', id, strip(m));
   }
   for (const id of Object.keys(seed.matches)) if (!(data.matches || {})[id]) { const ev = seed.events[seed.matches[id].ev]; if (ev) put(ev, 'm', id, null); }
+  for (const [k, r] of Object.entries(data.rosters || {})) { const ev = (data.events || {})[k.split('|')[0]] || seed.events[k.split('|')[0]]; if (ev && r) put(ev, 'r', k, r); }
   return parts;
 }
 export async function importBackup(json) {
@@ -216,11 +232,17 @@ export async function importBackup(json) {
   await fb.setConfig(config);
   fb.addLog({ by: who(), action: 'Khôi phục từ file sao lưu' });
 }
+// Về lịch gốc: xóa kết quả/đổi lịch nhưng GIỮ danh sách VĐV đã nhập
+function rosterParts() {
+  const parts = {};
+  for (const [k, r] of Object.entries(state.db.rosters || {})) { const ev = seed.events[k.split('|')[0]] || state.db.events[k.split('|')[0]]; if (ev) ((parts[docOf(ev)] ||= {}).r ||= {})[k] = r; }
+  return parts;
+}
 export async function resetAll() {
   if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.');
-  if (state.mode === 'local') { ls.del(LOCAL_KEY); set({ db: compose({}) }); return; }
+  if (state.mode === 'local') { const keep = rosterParts(); ls.set(LOCAL_KEY, keep); set({ db: compose(keep) }); return; }
   requireFb();
-  await fb.replaceOverrides({});
+  await fb.replaceOverrides(rosterParts());
   fb.addLog({ by: who(), action: 'Xóa mọi thay đổi, về lịch gốc' });
 }
 export const resetLocal = resetAll;

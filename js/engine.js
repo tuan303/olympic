@@ -320,5 +320,8 @@ export function createEngine(db) {
     resolveSide, winner, standings, podium, medalTable, finalMatch, feeders,
     status, isReal, stageLabel, matchNo, sideName, sidesOf, classesOf, allClasses, matchesOfClass, eventsOf, progress,
     matchesOf: (evId) => byEv[evId] || [],
+    // Danh sách VĐV đội: rosterOf('bongda-k7', '7A05') → [{ n: 'Họ tên', no: '10' }]
+    rosters: db.rosters || {},
+    rosterOf: (evId, cls) => ((db.rosters || {})[evId + '|' + cls] || {}).list || [],
   };
 }

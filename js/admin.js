@@ -21,6 +21,7 @@ const TABS = [
   { id: 'nhap', label: 'Nhập kết quả', icon: I.whistle },
   { id: 'tran', label: 'Lịch & trận đấu', icon: I.cal },
   { id: 'noi-dung', label: 'Bảng đấu & xếp hạng', icon: I.list },
+  { id: 'doi-hinh', label: 'Danh sách VĐV', icon: I.users },
   { id: 'thong-bao', label: 'Thông báo', icon: I.bell, all: true },
   { id: 'cai-dat', label: 'Cài đặt', icon: I.gear, all: true },
   { id: 'quyen', label: 'Quản trị viên', icon: I.users, super: true, live: true },
@@ -48,7 +49,7 @@ export function render(app, c) {
   app.querySelector('#adm-out').addEventListener('click', async () => { await c.store.signOut(); toast('Đã đăng xuất'); c.render(); });
   app.querySelector('#adm-refresh').addEventListener('click', () => { dirty.clear(); c.render(); });
   const body = app.querySelector('#adm-body');
-  const views = { nhap: tabEntry, tran: tabMatches, 'noi-dung': tabEvents, 'thong-bao': tabNews, 'cai-dat': tabSettings, quyen: tabAdmins, 'du-lieu': tabData, 'nhat-ky': tabLogs };
+  const views = { nhap: tabEntry, tran: tabMatches, 'noi-dung': tabEvents, 'doi-hinh': tabRosters, 'thong-bao': tabNews, 'cai-dat': tabSettings, quyen: tabAdmins, 'du-lieu': tabData, 'nhat-ky': tabLogs };
   views[cur.id](body, S);
 }
 
@@ -421,6 +422,77 @@ function tabEvents(body, S) {
 // ============================================================
 //  4) THÔNG BÁO
 // ============================================================
+// ---------------- danh sách VĐV các đội ----------------
+// Mỗi dòng 1 học sinh: "Họ tên" hoặc "Số áo. Họ tên" / "Số áo - Họ tên"
+const rosterText = (list) => list.map((x) => (x.no ? `${x.no}. ${x.n}` : x.n)).join('\n');
+function parseRoster(text) {
+  return String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => {
+    const cells = l.split('\t').map((c) => c.trim()).filter(Boolean);
+    if (cells.length >= 2 && /^\d{1,3}$/.test(cells[0])) return { no: cells[0], n: cells.slice(1).join(' ') };
+    const m = l.match(/^(\d{1,3})\s*[.\-–:)]\s*(.+)$/);
+    return m ? { no: m[1], n: m[2].trim() } : { no: '', n: l.replace(/\t+/g, ' ') };
+  });
+}
+const normCls = (s) => String(s || '').toUpperCase().replace(/\s+/g, '').replace(/^LỚP/, '');
+function tabRosters(body, S) {
+  const E = S.engine;
+  const evs = E.eventsOf({}).filter((e) => e.kind === 'team' && canSport(e.sport));
+  const evId = ctx.route.q.get('ev') || (evs[0] && evs[0].id);
+  const ev = E.events[evId];
+  const sel = `<div class="filters"><select class="sel" id="rev" style="min-width:280px">${LEVELS.map((l) => `<optgroup label="${esc(l.name)}">${evs.filter((e) => e.level === l.id).map((e) => `<option value="${e.id}" ${e.id === evId ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>`;
+  if (!ev || ev.kind !== 'team') { body.innerHTML = sel + '<div class="card empty-box">Chọn một môn đồng đội.</div>'; bindSel(); return; }
+  const classes = Object.values(ev.groups).flat().sort(cmpClass);
+  const done = classes.filter((c) => E.rosterOf(ev.id, c).length).length;
+  body.innerHTML = `${sel}
+    <div class="card card-pad"><h3 style="font-weight:700;margin-bottom:4px">Dán nhanh từ Excel</h3>
+      <p class="help" style="margin-top:0">Bôi đen các cột <b>Lớp | Họ tên</b> (thêm cột <b>Số áo</b> nếu có) trong Excel → Copy → dán vào ô dưới → bấm <b>Chia vào các lớp</b>. Lớp nào có trong bảng dán sẽ được thay danh sách; kiểm tra lại rồi bấm <b>Lưu</b>.</p>
+      <textarea class="inp" id="r-paste" rows="4" style="width:100%" placeholder="7A05&#9;Nguyễn Văn An&#9;10&#10;7A05&#9;Trần Minh Khoa&#9;7"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" id="r-split">${I.list} Chia vào các lớp</button></div></div>
+    <div class="section-title section"><h2 style="font-size:17px">${esc(ev.name)} · ${done}/${classes.length} lớp đã có danh sách</h2><button class="btn primary" id="r-save">${I.check} Lưu</button></div>
+    <p class="help" style="margin-top:-6px">Mỗi dòng một học sinh. Có số áo thì ghi <b>10. Nguyễn Văn An</b>. Xóa hết nội dung ô = xóa danh sách của lớp.</p>
+    <div class="roster-grid">${classes.map((c) => { const l = E.rosterOf(ev.id, c); return `<label class="card card-pad field"><span style="display:flex;justify-content:space-between"><b style="color:var(--navy);font-size:15px">${esc(c)}</b><i class="rc" data-rc="${esc(c)}" style="font-style:normal">${l.length} VĐV</i></span>
+      <textarea class="inp" rows="7" data-cls="${esc(c)}" placeholder="Mỗi dòng 1 học sinh">${esc(rosterText(l))}</textarea></label>`; }).join('')}</div>`;
+  bindSel();
+  const areas = [...body.querySelectorAll('textarea[data-cls]')];
+  const count = (ta) => { const n = parseRoster(ta.value).length; body.querySelector(`[data-rc="${CSS.escape(ta.dataset.cls)}"]`).textContent = n + ' VĐV'; };
+  areas.forEach((ta) => ta.addEventListener('input', () => { dirty.add('roster'); count(ta); }));
+  body.querySelector('#r-split').addEventListener('click', () => {
+    const by = {}; let skip = 0;
+    body.querySelector('#r-paste').value.split(/\r?\n/).forEach((line) => {
+      const cells = line.split(/\t|;/).map((c) => c.trim()).filter(Boolean);
+      if (!cells.length) return;
+      const ci = cells.findIndex((c) => classes.includes(normCls(c)));
+      if (ci < 0) { skip++; return; }
+      const cls = normCls(cells[ci]);
+      const rest = cells.filter((_, i) => i !== ci);
+      const no = rest.find((c) => /^\d{1,3}$/.test(c)) || '';
+      const n = rest.filter((c) => c !== no).join(' ');
+      if (n) (by[cls] ||= []).push({ n, no });
+    });
+    const got = Object.keys(by);
+    if (!got.length) return toast('Không đọc được dòng nào có tên lớp của nội dung này', 'err');
+    got.forEach((c) => { const ta = areas.find((a) => a.dataset.cls === c); ta.value = rosterText(by[c]); count(ta); });
+    dirty.add('roster');
+    toast(`Đã chia ${got.reduce((a, c) => a + by[c].length, 0)} học sinh vào ${got.length} lớp${skip ? ` · bỏ qua ${skip} dòng không có lớp` : ''} — bấm Lưu`, 'ok');
+  });
+  body.querySelector('#r-save').addEventListener('click', async (e) => {
+    const btn = e.currentTarget; btn.disabled = true;
+    let n = 0;
+    try {
+      for (const ta of areas) {
+        const next = parseRoster(ta.value);
+        const cur = E.rosterOf(ev.id, ta.dataset.cls);
+        if (rosterText(next) === rosterText(cur)) continue;
+        await ctx.store.saveRoster(ev.id, ta.dataset.cls, next); n++;
+      }
+      dirty.delete('roster');
+      toast(n ? `Đã lưu danh sách ${n} lớp` : 'Không có thay đổi', 'ok');
+      ctx.render();
+    } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
+  });
+  function bindSel() { body.querySelector('#rev').addEventListener('change', (e) => { if (dirty.has('roster') && !confirm('Danh sách đang sửa chưa lưu. Bỏ qua?')) { e.target.value = evId; return; } dirty.delete('roster'); ctx.setQuery({ ev: e.target.value }); }); }
+}
+
 function tabNews(body, S) {
   const news = (S.db.news || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
   body.innerHTML = `<div class="grid2" style="align-items:start">
@@ -547,7 +619,7 @@ function tabData(body, S) {
   });
   body.querySelector('#x-json').addEventListener('click', () => {
     const db = ctx.store.getState().db;
-    download(`olympic-sao-luu-${stamp}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), meta: db.meta, settings: db.settings, news: db.news, rules: db.rules, general: db.general, events: db.events, matches: db.matches }), 'application/json');
+    download(`olympic-sao-luu-${stamp}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), meta: db.meta, settings: db.settings, news: db.news, rules: db.rules, general: db.general, events: db.events, matches: db.matches, rosters: db.rosters || {} }), 'application/json');
   });
   const imp = body.querySelector('#imp');
   if (imp) imp.addEventListener('change', async () => {

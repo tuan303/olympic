@@ -136,7 +136,7 @@ export function standingsTable(E, evId, g, opt = {}) {
     const rkc = ev.format === 'RR' && st.complete ? (r.rank === 1 ? 'g' : r.rank === 2 ? 's' : r.rank <= 2 + (ev.bronze || 1) ? 'b' : '') : '';
     return `<tr class="${qc} ${opt.me === r.t ? 'me' : ''}">
       <td><span class="rk ${rkc}">${r.rank}</span></td>
-      <td class="l team"><a href="#/lop/${encodeURIComponent(r.t)}">${esc(r.t)}</a></td>
+      <td class="l team"><button class="team-btn" data-roster="${esc(evId + '|' + r.t)}" title="Xem danh sách VĐV">${esc(r.t)}${E.rosterOf(evId, r.t).length ? `<i class="rcount">${E.rosterOf(evId, r.t).length}</i>` : ''}</button></td>
       <td>${r.p}</td><td>${r.w}</td>${foot ? `<td>${r.d}</td>` : ''}<td>${r.l}</td>
       <td class="hide-sm">${r.f}</td><td class="hide-sm">${r.a}</td><td>${r.diff > 0 ? '+' : ''}${r.diff}</td>
       <td class="pts">${r.pts}</td>
@@ -321,6 +321,21 @@ export function toast(msg, type = '') {
   setTimeout(() => t.remove(), type === 'err' ? 5000 : 2600);
 }
 
+// ---------- danh sách VĐV đội ----------
+export function rosterList(E, evId, cls, opt = {}) {
+  const list = E.rosterOf(evId, cls);
+  if (!list.length) return `<div class="roster-empty">${opt.short ? 'Chưa có danh sách' : 'Ban tổ chức chưa cập nhật danh sách vận động viên của lớp này.'}</div>`;
+  return `<ol class="roster">${list.map((x, i) => `<li><span class="no ${x.no ? '' : 'idx'}" title="${x.no ? 'Số áo' : 'Thứ tự'}">${esc(x.no || String(i + 1))}</span><span class="nm">${esc(x.n)}</span></li>`).join('')}</ol>`;
+}
+export function openRoster(E, evId, cls) {
+  const ev = E.events[evId];
+  if (!ev) return;
+  const n = E.rosterOf(evId, cls).length;
+  openModal(`<div class="modal-h"><h3>${sportTag(ev.sport)} <span style="margin-left:6px">Lớp ${esc(cls)}</span></h3><button class="btn ghost sm" data-close aria-label="Đóng">${I.x}</button></div>
+    <div class="modal-b"><div class="muted small" style="margin-bottom:10px">${esc(ev.name)}${n ? ` · <b>${n}</b> vận động viên` : ''}</div>${rosterList(E, evId, cls)}</div>
+    <div class="modal-f"><a class="btn" href="#/lop/${encodeURIComponent(cls)}" data-close>${I.users} Trang của lớp ${esc(cls)}</a><a class="btn" href="#/ket-qua/${esc(ev.sport)}/${ev.grade}" data-close>${I.trophy} BXH ${esc(SPORT[ev.sport].name)} khối ${ev.grade}</a></div>`);
+}
+
 // ---------- chi tiết trận ----------
 export function matchDetail(E, id, opt = {}) {
   const m = E.matches[id];
@@ -351,6 +366,7 @@ export function matchDetail(E, id, opt = {}) {
       ${m.note ? `<dt>Ghi chú</dt><dd>${esc(m.note)}</dd>` : ''}
       ${m.upd ? `<dt>Cập nhật</dt><dd class="muted">${esc(relTime(m.upd))}</dd>` : ''}
     </dl>
+    ${ev.kind === 'team' && (A.kind === 'team' || B.kind === 'team') ? `<div class="roster-pair"><h4>Danh sách thi đấu</h4><div class="grid2">${[A, B].map((r) => `<div><div class="roster-h">${r.kind === 'team' ? esc(r.t) : esc(r.label || 'Chưa xác định')}</div>${r.kind === 'team' ? rosterList(E, ev.id, r.t, { short: true }) : '<div class="roster-empty">Chưa xác định đội</div>'}</div>`).join('')}</div></div>` : ''}
   </div>
   <div class="modal-f">
     <a class="btn" href="#/ket-qua/${esc(ev.sport)}/${ev.grade}${ev.cat ? '/' + esc(ev.cat) : ''}" data-close>${I.trophy} Xem BXH & nhánh đấu</a>
