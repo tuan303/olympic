@@ -179,7 +179,7 @@ export function teamBracket(E, evId) {
   if (ev.format === 'QF') cols.push(['Tứ kết', pick('QF')]);
   cols.push(['Bán kết', pick('SF')], ['Chung kết', pick('F')]);
   if (!cols.some(([, l]) => l.length)) return '';
-  return `<div class="bracket">${cols.map(([h, list]) => `<div class="bcol"><h4>${h}</h4>${list.map((m) => bracketBox(E, m)).join('')}</div>`).join('')}</div>`;
+  return `<div class="bracket">${cols.map(([h, list]) => `<div class="bcol"><h4>${h}</h4><div class="bcol-l">${list.map((m) => bracketBox(E, m)).join('')}</div></div>`).join('')}</div>`;
 }
 // Nhánh đấu cá nhân: xếp cột theo độ sâu tính từ chung kết
 export function indBracket(E, evId) {
@@ -205,7 +205,7 @@ export function indBracket(E, evId) {
     if (!list.length) continue;
     list.sort((a, b) => (a.branch || '').localeCompare(b.branch || '') || (a.n || 0) - (b.n || 0));
     const name = d === 0 ? 'Chung kết' : d === 1 ? 'Bán kết' : d === 2 ? 'Tứ kết' : `Vòng ${max - d + 1}`;
-    cols.push(`<div class="bcol"><h4>${name}</h4>${list.map((m) => bracketBox(E, m)).join('')}</div>`);
+    cols.push(`<div class="bcol"><h4>${name}</h4><div class="bcol-l">${list.map((m) => bracketBox(E, m)).join('')}</div></div>`);
   }
   return `<div class="bracket">${cols.join('')}</div>`;
 }

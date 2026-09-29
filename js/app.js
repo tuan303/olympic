@@ -110,7 +110,8 @@ function viewHome(S) {
   // Lịch trong ngày: tóm tắt theo khối
   const byGrade = {};
   dayMs.forEach((m) => { const ev = E.events[m.ev]; (byGrade[ev.grade] ||= []).push(m); });
-  const dayBlocks = Object.keys(byGrade).map(Number).sort((a, b) => a - b).map((g) => {
+  const firstTime = (list) => list.map((m) => m.time).filter(Boolean).sort()[0] || '99';
+  const dayBlocks = Object.keys(byGrade).map(Number).sort((a, b) => firstTime(byGrade[a]).localeCompare(firstTime(byGrade[b])) || a - b).map((g) => {
     const list = byGrade[g];
     const t0 = list.map((m) => m.time).filter(Boolean).sort()[0] || '';
     const t1 = list.map((m) => m.end || m.time).filter(Boolean).sort().pop() || '';
@@ -227,9 +228,12 @@ function viewSchedule(S) {
   // nhóm: ngày → khối
   const byDate = {};
   list.forEach((m) => { (byDate[m.date] ||= {}); const g = E.events[m.ev].grade; (byDate[m.date][g] ||= []).push(m); });
+  const multiDay = whole || (stf === 'done' && !q.get('d')) || Object.keys(byDate).length > 1;
   const body = Object.keys(byDate).sort(stf === 'done' && !q.get('d') ? (a, b) => b.localeCompare(a) : undefined).map((d) => {
-    const grades = Object.keys(byDate[d]).map(Number).sort((a, b) => a - b);
-    return `<div class="day"><div class="day-h"><h3>${esc(weekdayLong(d))}, ${esc(fmtDM(d))}</h3><span class="muted">${Object.values(byDate[d]).flat().length} trận</span></div>
+    const t0Of = (g) => byDate[d][g].map((m) => m.time).filter(Boolean).sort()[0] || '99';
+    const grades = Object.keys(byDate[d]).map(Number).sort((a, b) => t0Of(a).localeCompare(t0Of(b)) || a - b);
+    const dayHead = multiDay ? `<div class="day-h"><h3>${esc(weekdayLong(d))}, ${esc(fmtDM(d))}</h3><span class="muted">${Object.values(byDate[d]).flat().length} trận</span></div>` : '';
+    return `<div class="day">${dayHead}
       ${grades.map((g) => {
         const sOrder = (m) => SPORTS.findIndex((s) => s.id === E.events[m.ev].sport);
         const ms = byDate[d][g].slice().sort((a, b) => (a.time || '').localeCompare(b.time || '') || sOrder(a) - sOrder(b) || cmpMatch(a, b));
@@ -246,7 +250,7 @@ function viewSchedule(S) {
   app.innerHTML = `<div class="wrap page">
     <div class="page-head"><div><div class="eyebrow">Lịch thi đấu</div><h1>${stf === 'done' && !q.get('d') ? 'Kết quả đã cập nhật' : whole ? `Tuần ${wk} · ${fmtDM(mon)} – ${fmtDM(addDays(mon, 4))}` : `${esc(weekdayLong(day))}, ${esc(fmtDM(day))}`}</h1>
       <p>Các khối thi đấu trong 2 tiết thể thao hằng tuần. Bấm vào trận để xem chi tiết.</p></div>
-      <button class="btn no-print" onclick="window.print()">${I.print} In lịch</button></div>
+      <button class="btn no-print hide-sm" onclick="window.print()">${I.print} In lịch</button></div>
     <div class="daybar">
       <button class="nav" data-wk="-7" aria-label="Tuần trước">${I.left}</button>
       <div class="days">${days.map((d) => { const c = countDay(d); return `<button class="dbtn ${d === day && !whole && !(stf === 'done' && !q.get('d')) ? 'on' : ''} ${d === today ? 'today' : ''} ${c ? '' : 'empty'}" data-day="${d}"><span class="w">${esc(fmtDate(d).split(',')[0])}</span><span class="d">${esc(fmtDM(d))}</span><span class="c">${c ? c + ' trận' : '—'}</span></button>`; }).join('')}
@@ -263,6 +267,8 @@ function viewSchedule(S) {
     </div>
     ${body || `<div class="card empty-box">${I.cal}<b>Không có trận nào phù hợp</b>Thử chọn ngày khác hoặc bỏ bớt bộ lọc.</div>`}
   </div>`;
+  const dbar = app.querySelector('.days'), don = dbar.querySelector('.dbtn.on');
+  if (don && dbar.scrollWidth > dbar.clientWidth) dbar.scrollLeft = don.offsetLeft - dbar.offsetLeft - (dbar.clientWidth - don.offsetWidth) / 2;
   app.querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click', () => setQuery({ d: b.dataset.day, w: null, st: stf === 'done' ? null : stf })));
   app.querySelector('[data-whole]').addEventListener('click', () => setQuery({ w: '1', d: mon }));
   app.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => {
@@ -367,7 +373,7 @@ function indEventView(E, ev, inGrade) {
         <div style="height:8px;background:var(--line-2);border-radius:9px;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${prog.pct}%;background:${SPORT[ev.sport].color}"></i></div></div>
     </div>
     <div class="section"><div class="section-title"><h2>${I.medal} Thứ hạng</h2></div>${podiumHtml(E, ev.id)}</div>
-    <div class="section"><div class="section-title"><h2>${I.bracket} Nhánh đấu</h2><span class="muted small">Người thắng tự điền vào vòng sau · kéo ngang để xem hết</span></div><div class="card card-pad">${indBracket(E, ev.id)}</div></div>
+    <div class="section"><div class="section-title"><h2>${I.bracket} Nhánh đấu</h2><span class="muted small hide-sm">Người thắng tự điền vào vòng sau · kéo ngang để xem hết</span></div><div class="card card-pad">${indBracket(E, ev.id)}</div></div>
     <div class="section"><div class="section-title"><h2>${I.cal} Lịch & kết quả</h2><button class="btn sm" data-toggle-done>${pref.onlyDone ? 'Hiện tất cả trận' : 'Chỉ trận đã có kết quả'}</button></div>
       ${karate ? `<div class="card gblock">${shown.length ? fixtureList(E, shown, { showSport: false, grade: false }) : '<div class="empty-box">Chưa có trận.</div>'}</div>` : (matchesByWeek(E, shown, S.db.meta || {}) || `<div class="card empty-box">Chưa có trận đã có kết quả.</div>`)}</div>`;
 }
@@ -400,7 +406,7 @@ function viewMedals(S) {
     body = grades.map((g) => {
       const evs = E.eventsOf({ grade: g });
       return `<div class="card section"><div class="card-head"><h3>Khối ${g} <span class="muted small" style="font-weight:600">· ${esc(levelName(levelOf(g)))}</span></h3></div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Nội dung</th><th class="l"><span class="dot g"></span>Nhất</th><th class="l"><span class="dot s"></span>Nhì</th><th class="l"><span class="dot b"></span>Ba</th></tr></thead><tbody>
+        <div class="tbl-wrap"><table class="tbl champ"><thead><tr><th class="l">Nội dung</th><th class="l"><span class="dot g"></span>Nhất</th><th class="l"><span class="dot s"></span>Nhì</th><th class="l"><span class="dot b"></span>Ba</th></tr></thead><tbody>
         ${evs.map((e) => { const p = E.podium(e.id); const nm = (r) => p.filter((x) => x.rank === r).map((x) => x.side.kind === 'ath' ? `${esc(x.side.p || x.side.t)} <span class="muted xs">${esc(x.side.t)}</span>` : `<b>${esc(x.side.t)}</b>`).join('<br>') || '<span class="muted">—</span>';
           return `<tr><td class="l"><a href="#/ket-qua/${e.sport}/${e.grade}${e.cat ? '/' + e.cat : ''}" style="display:inline-flex;gap:6px;align-items:center">${sportTag(e.sport, e.kind === 'ind' ? SPORT[e.sport].name + ' · ' + e.catName : SPORT[e.sport].name)}</a></td><td class="l">${nm(1)}</td><td class="l">${nm(2)}</td><td class="l">${nm(3)}</td></tr>`; }).join('')}
         </tbody></table></div></div>`;
@@ -511,7 +517,7 @@ function viewRules(S) {
     doc = r ? `<div class="doc-title">${esc(r.title)}</div>${ruleBody(r.body)}<div class="sign">${esc((r.dated || '').replace(/NGƯỜI LẬP.*$/i, '').trim())}${r.author ? `<br>Người lập: <b>${esc(capFirst(r.author))}</b>` : ''}</div>`
       : `<div class="empty-box">${I.book}<b>Chưa có điều lệ</b></div>`;
   }
-  app.innerHTML = `<div class="wrap page"><div class="page-head"><div><div class="eyebrow">Điều lệ giải</div><h1>${sp === 'chung' ? 'Quy định chung' : esc(SPORT[sp] ? SPORT[sp].name : '')} · ${esc(levelName(lv))}</h1><p>Theo văn bản của Tổ Thể thao. Chỉ Ban tổ chức có quyền điều chỉnh, bổ sung nội dung điều lệ.</p></div><button class="btn no-print" onclick="window.print()">${I.print} In điều lệ</button></div>
+  app.innerHTML = `<div class="wrap page"><div class="page-head"><div><div class="eyebrow">Điều lệ giải</div><h1>${sp === 'chung' ? 'Quy định chung' : esc(SPORT[sp] ? SPORT[sp].name : '')} · ${esc(levelName(lv))}</h1><p>Theo văn bản của Tổ Thể thao. Chỉ Ban tổ chức có quyền điều chỉnh, bổ sung nội dung điều lệ.</p></div><button class="btn no-print hide-sm" onclick="window.print()">${I.print} In điều lệ</button></div>
     <div class="rules"><nav class="card rules-nav">${nav}</nav><article class="card doc">${doc}</article></div></div>`;
 }
 

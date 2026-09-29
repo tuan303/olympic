@@ -250,7 +250,7 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 /* ---------- tab khối ---------- */
 .gradebar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .gradebar .lv { display: flex; align-items: center; gap: 8px; }
-.gradebar .lv > span { width: 64px; flex: none; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.gradebar .lv > span { width: 76px; flex: none; white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .sporttabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .stab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-weight: 700; }
 .stab .ic { width: 22px; height: 22px; color: var(--k); }
@@ -500,7 +500,8 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
   .fx-top { display: flex; grid-area: top; align-items: center; gap: 8px; min-width: 0; }
   .fx-when { display: flex; gap: 5px; align-items: baseline; flex: none; }
   .fx-when b, .fx-when small { display: inline; }
-  .fx-stage { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+  .fx-sport { flex: none; white-space: nowrap; }
+  .fx-stage { display: flex; gap: 6px; align-items: baseline; min-width: 0; flex: 1; }
   .fx-stage b, .fx-stage small { display: inline; }
   .fx-venue { justify-content: center; font-size: 12px; }
   .fx-venue:empty, .fx-venue.hide-narrow { display: none; }
@@ -511,7 +512,8 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 }
 @container (max-width: 380px) {
   .fx-score.done { font-size: 15px; }
-  .fx-stage small { display: none; }
+  .fx-stage { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fx-stage small { font-size: 11.5px; margin-left: 5px; }
 }
 @container (max-width: 300px) { .fx-sport span { display: none; } }
 
@@ -530,3 +532,45 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 .home-top .grow { flex: 1; }
 @media (max-width: 1060px) { .home-top { grid-template-columns: repeat(2, minmax(0, 1fr)); } .home-top .news-card { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .home-top { grid-template-columns: 1fr; } .home-top .class-card { order: -1; } }
+
+/* ============================================================
+   RÀ SOÁT GIAO DIỆN 29/09
+   ============================================================ */
+/* hero: chừa chỗ cho hàng thẻ môn đè lên mép dưới, không che thanh tiến độ */
+@media (min-width: 861px) { .hero-copy { padding-bottom: 70px; } }
+
+/* nhánh đấu: tiêu đề các vòng thẳng hàng, ô trận căn giữa theo vòng trước */
+.bcol { justify-content: flex-start; gap: 8px; }
+.bcol-l { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 14px; }
+
+/* nút "Theo dõi lớp" trên nền navy bị trắng chữ */
+.class-hero .btn { color: var(--navy); }
+
+/* lịch: tiêu đề khối + khung giờ bám theo khi cuộn dài */
+.gblock { overflow: clip; --gh: 50px; }
+.gblock-h { position: sticky; top: calc(var(--top-h) + 5px); z-index: 3; height: var(--gh); padding-top: 0; padding-bottom: 0; }
+.gblock .slot-h { position: sticky; top: calc(var(--top-h) + 5px + var(--gh)); z-index: 2; }
+@media print { .gblock-h, .gblock .slot-h { position: static; } .gblock { overflow: visible; } }
+
+.section-title { flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  /* bộ lọc gọn: cấp học cuộn ngang, ô chọn 2 cột */
+  .filters { gap: 8px; }
+  .filters > .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }
+  .filters > .chips::-webkit-scrollbar { display: none; }
+  .filters .sel, .filters .search { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .filters .sel { width: 100%; }
+  .filters .search .inp { width: 100% !important; }
+  .page-head h1 { font-size: 23px; }
+  /* tab môn cuộn ngang thay vì xuống 3 dòng */
+  .sporttabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -16px; margin-right: -16px; padding: 0 16px 2px; }
+  .sporttabs::-webkit-scrollbar { display: none; }
+  .stab { flex: none; }
+  .gradebar .lv > span { width: 58px; font-size: 10.5px; white-space: nowrap; }
+  /* bảng nhà vô địch: cho nhãn nội dung xuống dòng, không tràn ngang */
+  .tbl.champ { font-size: 13px; }
+  .tbl.champ th, .tbl.champ td { padding: 8px 4px; }
+  .tbl.champ .tag { white-space: normal; font-size: 11px; border-radius: 8px; }
+  .tbl.champ td:first-child { width: 42%; }
+}
