@@ -460,6 +460,7 @@ function viewClass(S) {
     const pod = E.podium(x.ev.id).find((p) => p.side.t === cls && p.side.p === x.p);
     return `<a class="sum-row" href="#/ket-qua/${x.ev.sport}/${x.ev.grade}/${x.ev.cat}"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${sportTag(x.ev.sport, SPORT[x.ev.sport].name + ' · ' + x.ev.catName)}<b class="small">${esc(x.p)}</b>${pod ? `<span class="tag" style="--t:#fff1c2;--k:#8a6400">${pod.rank === 1 ? 'HCV' : pod.rank === 2 ? 'HCB' : 'HCĐ'}</span>` : ''}</div>${I.right}</a>`;
   }).join('');
+  const regRows = ['caulong', 'karate'].map((sp) => { const id = `${sp}-k${g}`; const n = E.rosterOf(id, cls).length; return n ? `<button class="sum-row reg-row" data-roster="${esc(id + '|' + cls)}">${sportTag(sp)}<span class="small"><b>${n}</b> học sinh đăng ký</span><span class="small muted nowrap">Danh sách ${I.right}</span></button>` : ''; }).join('');
   const following = pref.myClass === cls;
   app.innerHTML = `<div class="wrap page">
     <div class="class-hero"><div><div class="sub">${esc(levelName(levelOf(g)))} · Khối ${g}</div><h1>Lớp ${esc(cls)}</h1>
@@ -474,7 +475,7 @@ function viewClass(S) {
       </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card"><div class="card-head"><h3>${I.users} Môn đồng đội</h3></div>${teamCards || '<div class="empty-box small">Không có.</div>'}</div>
-        <div class="card"><div class="card-head"><h3>${I.star} Vận động viên cá nhân</h3></div>${indRows || '<div class="empty-box small">Lớp chưa có VĐV đăng ký Cầu lông / Karate.</div>'}</div>
+        <div class="card"><div class="card-head"><h3>${I.star} Vận động viên cá nhân</h3></div>${regRows}${indRows || (regRows ? '' : '<div class="empty-box small">Lớp chưa có VĐV đăng ký Cầu lông / Karate.</div>')}</div>
       </div>
     </div></div>`;
   app.querySelector('#follow').addEventListener('click', () => { savePref({ myClass: following ? null : cls }); toast(following ? 'Đã bỏ theo dõi' : `Đã theo dõi lớp ${cls} — xem nhanh ở trang chủ`, 'ok'); render(); });

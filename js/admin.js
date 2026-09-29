@@ -2,7 +2,7 @@
 //  QUẢN TRỊ — dành cho Ban tổ chức / giáo viên phụ trách môn
 // ============================================================
 import { esc, todayISO, fmtDate, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, uid, clone, ls } from './util.js';
-import { SPORTS, SPORT, LEVELS, levelOf, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
+import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
 import { SPORT_ICON, I } from './icons.js';
 import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName } from './ui.js';
 import { hasFirebase, DEMO } from './store.js';
@@ -424,32 +424,36 @@ function tabEvents(body, S) {
 // ============================================================
 // ---------------- danh sách VĐV các đội ----------------
 // Mỗi dòng 1 học sinh: "Họ tên" hoặc "Số áo. Họ tên" / "Số áo - Họ tên"
-const rosterText = (list) => list.map((x) => (x.no ? `${x.no}. ${x.n}` : x.n)).join('\n');
+const rosterText = (list) => list.map((x) => (x.no ? `${x.no}. ` : '') + x.n + (x.g ? ` (${x.g}${x.note ? ', ' + x.note : ''})` : x.note ? ` (${x.note})` : '')).join('\n');
 function parseRoster(text) {
   return String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => {
     const cells = l.split('\t').map((c) => c.trim()).filter(Boolean);
     if (cells.length >= 2 && /^\d{1,3}$/.test(cells[0])) return { no: cells[0], n: cells.slice(1).join(' ') };
     const m = l.match(/^(\d{1,3})\s*[.\-–:)]\s*(.+)$/);
-    return m ? { no: m[1], n: m[2].trim() } : { no: '', n: l.replace(/\t+/g, ' ') };
+    const r = m ? { no: m[1], n: m[2].trim() } : { no: '', n: l.replace(/\t+/g, ' ') };
+    const p = r.n.match(/^(.*?)\s*\(([^)]*)\)\s*$/); // "Họ tên (Nữ, 2 nội dung)"
+    if (p) { r.n = p[1].trim(); const bits = p[2].split(',').map((x) => x.trim()).filter(Boolean); if (/^(nam|nữ)$/i.test(bits[0] || '')) r.g = bits.shift().replace(/^n/i, 'N'); if (bits.length) r.note = bits.join(', '); }
+    return r;
   });
 }
 const normCls = (s) => String(s || '').toUpperCase().replace(/\s+/g, '').replace(/^LỚP/, '');
 function tabRosters(body, S) {
   const E = S.engine;
-  const evs = E.eventsOf({}).filter((e) => e.kind === 'team' && canSport(e.sport));
+  const regs = ['caulong', 'karate'].filter(canSport).flatMap((sp) => [...new Set(E.eventsOf({ sport: sp }).map((e) => e.grade))].map((g) => E.rosterEvent(`${sp}-k${g}`)));
+  const evs = [...E.eventsOf({}).filter((e) => e.kind === 'team' && canSport(e.sport)), ...regs].sort((a, b) => a.grade - b.grade || SPORTS.findIndex((s) => s.id === a.sport) - SPORTS.findIndex((s) => s.id === b.sport));
   const evId = ctx.route.q.get('ev') || (evs[0] && evs[0].id);
-  const ev = E.events[evId];
+  const ev = E.rosterEvent(evId);
   const sel = `<div class="filters"><select class="sel" id="rev" style="min-width:280px">${LEVELS.map((l) => `<optgroup label="${esc(l.name)}">${evs.filter((e) => e.level === l.id).map((e) => `<option value="${e.id}" ${e.id === evId ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>`;
-  if (!ev || ev.kind !== 'team') { body.innerHTML = sel + '<div class="card empty-box">Chọn một môn đồng đội.</div>'; bindSel(); return; }
-  const classes = Object.values(ev.groups).flat().sort(cmpClass);
+  if (!ev || (ev.kind !== 'team' && ev.kind !== 'reg')) { body.innerHTML = sel + '<div class="card empty-box">Chọn một môn.</div>'; bindSel(); return; }
+  const classes = (ev.kind === 'team' ? Object.values(ev.groups).flat() : E.allClasses().filter((c) => gradeOfClass(c) === ev.grade)).sort(cmpClass);
   const done = classes.filter((c) => E.rosterOf(ev.id, c).length).length;
   body.innerHTML = `${sel}
     <div class="card card-pad"><h3 style="font-weight:700;margin-bottom:4px">Dán nhanh từ Excel</h3>
-      <p class="help" style="margin-top:0">Bôi đen các cột <b>Lớp | Họ tên</b> (thêm cột <b>Số áo</b> nếu có) trong Excel → Copy → dán vào ô dưới → bấm <b>Chia vào các lớp</b>. Lớp nào có trong bảng dán sẽ được thay danh sách; kiểm tra lại rồi bấm <b>Lưu</b>.</p>
+      <p class="help" style="margin-top:0">Bôi đen các cột <b>Lớp | Họ tên</b> (thêm cột <b>Giới tính</b>, <b>Số áo</b> nếu có) trong Excel → Copy → dán vào ô dưới → bấm <b>Chia vào các lớp</b>. Lớp nào có trong bảng dán sẽ được thay danh sách; kiểm tra lại rồi bấm <b>Lưu</b>.</p>
       <textarea class="inp" id="r-paste" rows="4" style="width:100%" placeholder="7A05&#9;Nguyễn Văn An&#9;10&#10;7A05&#9;Trần Minh Khoa&#9;7"></textarea>
       <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" id="r-split">${I.list} Chia vào các lớp</button></div></div>
     <div class="section-title section"><h2 style="font-size:17px">${esc(ev.name)} · ${done}/${classes.length} lớp đã có danh sách</h2><button class="btn primary" id="r-save">${I.check} Lưu</button></div>
-    <p class="help" style="margin-top:-6px">Mỗi dòng một học sinh. Có số áo thì ghi <b>10. Nguyễn Văn An</b>. Xóa hết nội dung ô = xóa danh sách của lớp.</p>
+    <p class="help" style="margin-top:-6px">Mỗi dòng một học sinh, dạng <b>10. Nguyễn Văn An (Nam)</b> — số áo và giới tính có thể bỏ. Xóa hết nội dung ô = xóa danh sách của lớp. Danh sách ban đầu lấy từ file đăng ký Olympic 26.27.</p>
     <div class="roster-grid">${classes.map((c) => { const l = E.rosterOf(ev.id, c); return `<label class="card card-pad field"><span style="display:flex;justify-content:space-between"><b style="color:var(--navy);font-size:15px">${esc(c)}</b><i class="rc" data-rc="${esc(c)}" style="font-style:normal">${l.length} VĐV</i></span>
       <textarea class="inp" rows="7" data-cls="${esc(c)}" placeholder="Mỗi dòng 1 học sinh">${esc(rosterText(l))}</textarea></label>`; }).join('')}</div>`;
   bindSel();
@@ -466,8 +470,9 @@ function tabRosters(body, S) {
       const cls = normCls(cells[ci]);
       const rest = cells.filter((_, i) => i !== ci);
       const no = rest.find((c) => /^\d{1,3}$/.test(c)) || '';
-      const n = rest.filter((c) => c !== no).join(' ');
-      if (n) (by[cls] ||= []).push({ n, no });
+      const g = rest.find((c) => /^(nam|nữ)$/i.test(c)) || '';
+      const n = rest.filter((c) => c !== no && c !== g).join(' ');
+      if (n) (by[cls] ||= []).push({ n, no, g: g ? g.replace(/^n/i, 'N') : '' });
     });
     const got = Object.keys(by);
     if (!got.length) return toast('Không đọc được dòng nào có tên lớp của nội dung này', 'err');

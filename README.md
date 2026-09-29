@@ -57,6 +57,16 @@ node build.js "<đường dẫn thư mục OLYMPIC THỂ THAO 26.27>"
 
 Sinh lại `js/seed-data.js` và `tools/extract-report.txt` (các chỗ file gốc lệch/thiếu). Sau đó tăng `ASSET_VER` trong `js/config.js` và `?v=` trong `index.html`. **Lưu ý:** dữ liệu gốc chỉ dùng để nạp lần đầu; khi giải đang chạy, sửa lịch trên trang Quản trị (nạp lại dữ liệu gốc sẽ xóa kết quả đã nhập).
 
+## Danh sách học sinh đăng ký (môn đồng đội + cá nhân)
+
+```bash
+node tools/extract-roster.js "<ĐĂNG KÝ TIỂU HỌC.xlsx>" "<THCS.ĐĂNG KÝ….xlsx>" "<THPT.ĐĂNG KÝ….xlsx>"
+```
+
+Sinh `js/roster-data.js` (chỉ **Lớp · Họ tên · Giới tính**) và `tools/roster-report.txt` (dòng cần kiểm tra).
+File Excel gốc có mã HS, ngày sinh, SĐT phụ huynh — **không commit** vào repo. Sau khi web chạy, BTC sửa danh sách
+trong **Quản trị → Danh sách VĐV** (phần sửa lưu trên Firestore, ưu tiên hơn file gốc).
+
 ## Chạy thử trên máy
 
 ```bash

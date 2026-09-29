@@ -32,8 +32,15 @@ function set(p) {
 
 let fb = null;
 let seed = null;
+let seedRosters = {};
 export async function loadSeed() {
-  if (!seed) seed = (await import('./seed-data.js?v=' + ASSET_VER)).SEED;
+  if (!seed) {
+    const [s, r] = await Promise.all([
+      import('./seed-data.js?v=' + ASSET_VER),
+      import('./roster-data.js?v=' + ASSET_VER).catch(() => ({ ROSTERS: {} })), // danh sách đăng ký từ Excel
+    ]);
+    seed = s.SEED; seedRosters = r.ROSTERS || {};
+  }
   return seed;
 }
 // Lịch gốc + các phần ghi đè → dữ liệu hiển thị
@@ -43,13 +50,13 @@ function compose(parts) {
   const db = {
     meta: { ...s.meta, ...(cfg.meta || {}) }, settings: cfg.settings || {}, news: cfg.news || [],
     rules: { ...s.rules, ...(cfg.rules || {}) }, general: s.general, sourceNotes: s.sourceNotes || [],
-    events: { ...s.events }, matches: { ...s.matches }, rosters: {},
+    events: { ...s.events }, matches: { ...s.matches }, rosters: { ...seedRosters },
   };
   for (const id of OVERRIDE_DOCS) {
     const d = parts[id];
     if (!d) continue;
     for (const [k, e] of Object.entries(d.e || {})) if (e) db.events[k] = e;
-    for (const [k, r] of Object.entries(d.r || {})) if (r && r.list && r.list.length) db.rosters[k] = r;
+    for (const [k, r] of Object.entries(d.r || {})) { if (r && r.list && r.list.length) db.rosters[k] = r; else delete db.rosters[k]; }
     for (const [k, m] of Object.entries(d.m || {})) { if (m === null) delete db.matches[k]; else db.matches[k] = m && VENUE_RENAME[m.venue] ? { ...m, venue: VENUE_RENAME[m.venue] } : m; }
   }
   return db;
@@ -178,11 +185,11 @@ export async function saveEvent(ev, action = 'Sửa nội dung') {
 }
 // Danh sách VĐV của một lớp trong một nội dung đồng đội; list rỗng = xóa
 export async function saveRoster(evId, cls, list) {
-  const ev = state.db.events[evId];
+  const ev = state.engine.rosterEvent(evId);
   if (!ev) throw new Error('Không thấy nội dung.');
   if (!canEdit(ev.sport)) throw new Error('Bạn không có quyền sửa môn này.');
   const key = evId + '|' + cls;
-  const clean = (list || []).map((x) => ({ n: String(x.n || '').trim(), no: String(x.no || '').trim() })).filter((x) => x.n);
+  const clean = (list || []).map((x) => { const o = { n: String(x.n || '').trim() }; for (const f of ['no', 'g', 'note']) if (x[f]) o[f] = String(x[f]).trim(); return o; }).filter((x) => x.n);
   const val = clean.length ? { list: clean, upd: Date.now(), by: who() } : null;
   const d = docOf(ev);
   if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).r ||= {})[key] = val; }); return; }
@@ -216,7 +223,9 @@ function diffFromSeed(data) {
     const ev = evOf(m); if (ev) put(ev, 'm', id, strip(m));
   }
   for (const id of Object.keys(seed.matches)) if (!(data.matches || {})[id]) { const ev = seed.events[seed.matches[id].ev]; if (ev) put(ev, 'm', id, null); }
-  for (const [k, r] of Object.entries(data.rosters || {})) { const ev = (data.events || {})[k.split('|')[0]] || seed.events[k.split('|')[0]]; if (ev && r) put(ev, 'r', k, r); }
+  const regEv = (id) => (data.events || {})[id] || seed.events[id] || (state.engine && state.engine.rosterEvent(id));
+  for (const [k, r] of Object.entries(data.rosters || {})) { if (JSON.stringify(r) === JSON.stringify(seedRosters[k])) continue; const ev = regEv(k.split('|')[0]); if (ev && r) put(ev, 'r', k, r); }
+  if (data.rosters) for (const k of Object.keys(seedRosters)) if (!data.rosters[k]) { const ev = regEv(k.split('|')[0]); if (ev) put(ev, 'r', k, null); }
   return parts;
 }
 export async function importBackup(json) {
@@ -235,7 +244,8 @@ export async function importBackup(json) {
 // Về lịch gốc: xóa kết quả/đổi lịch nhưng GIỮ danh sách VĐV đã nhập
 function rosterParts() {
   const parts = {};
-  for (const [k, r] of Object.entries(state.db.rosters || {})) { const ev = seed.events[k.split('|')[0]] || state.db.events[k.split('|')[0]]; if (ev) ((parts[docOf(ev)] ||= {}).r ||= {})[k] = r; }
+  for (const [k, r] of Object.entries(state.db.rosters || {})) { if (seedRosters[k] === r) continue; const ev = state.engine.rosterEvent(k.split('|')[0]); if (ev) ((parts[docOf(ev)] ||= {}).r ||= {})[k] = r; }
+  for (const k of Object.keys(seedRosters)) if (!state.db.rosters[k]) { const ev = state.engine.rosterEvent(k.split('|')[0]); if (ev) ((parts[docOf(ev)] ||= {}).r ||= {})[k] = null; }
   return parts;
 }
 export async function resetAll() {

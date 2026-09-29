@@ -647,3 +647,11 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 .roster-grid textarea { width: 100%; font-size: 14px; line-height: 1.5; }
 .roster-grid .rc { font-size: 12px; color: var(--muted); font-weight: 600; }
 .roster .no.idx { background: #e3e9f4; color: #4d5a73; }
+
+.roster .nm small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.roster .gd { margin-left: auto; flex: none; font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
+.roster .gd.m { background: #e6efff; color: #1d4ed8; }
+.roster .gd.f { background: #ffe8ee; color: #c2185b; }
+.reg-row { width: 100%; border: 0; border-top: 1px solid var(--line-2); background: #fbfcfe; font: inherit; text-align: left; cursor: pointer; }
+.reg-row:hover { background: #f3f7ff; }
+.reg-row > .small:nth-child(2) { margin-right: auto; margin-left: 10px; }

@@ -1,0 +1,5 @@
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongro ghi "11" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô bongda ghi "9" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô karate ghi "2" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô caulong ghi "4" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký
+[KIỂM TRA] KHỐI 08 dòng 179: Trần Nhật Quỳnh Chi (8A04) ô keoco ghi "10" — có vẻ là số tổng của lớp, KHÔNG tính đăng ký

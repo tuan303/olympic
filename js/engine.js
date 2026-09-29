@@ -323,5 +323,13 @@ export function createEngine(db) {
     // Danh sách VĐV đội: rosterOf('bongda-k7', '7A05') → [{ n: 'Họ tên', no: '10' }]
     rosters: db.rosters || {},
     rosterOf: (evId, cls) => ((db.rosters || {})[evId + '|' + cls] || {}).list || [],
+    // Nội dung thật, hoặc danh sách ĐĂNG KÝ môn cá nhân theo khối (vd 'caulong-k7')
+    rosterEvent: (id) => {
+      if (events[id]) return events[id];
+      const m = /^(caulong|karate)-k(\d+)$/.exec(id || '');
+      if (!m) return null;
+      const g = Number(m[2]);
+      return { id, sport: m[1], grade: g, level: levelOf(g), kind: 'reg', name: `${SPORT[m[1]].name} Khối ${g} – đăng ký` };
+    },
   };
 }
