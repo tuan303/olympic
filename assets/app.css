@@ -515,7 +515,7 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
   .fx-stage { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fx-stage small { font-size: 11.5px; margin-left: 5px; }
 }
-@container (max-width: 300px) { .fx-sport span { display: none; } }
+@container (max-width: 300px) { .fx-sport > span:not(.emo) { display: none; } }
 
 /* tiêu đề khối trong ngày */
 .gblock-h { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: #fff; border-bottom: 1px solid var(--line); }
@@ -577,3 +577,10 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 
 /* dòng ghi công dưới chân trang */
 .foot-credit { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .12); text-align: center; font-size: 12.5px; letter-spacing: .02em; color: rgba(255, 255, 255, .6); }
+
+/* biểu tượng môn dạng emoji: cỡ chữ khớp khung .ic ở từng chỗ */
+.ic.emo { display: inline-flex; align-items: center; justify-content: center; font-style: normal; line-height: 1; font-size: .95em; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; }
+.sport-card .sc-ic .ic.emo { font-size: 24px; }
+.stab .ic.emo { font-size: 18px; }
+.fx-sport .ic.emo { font-size: 15px; }
+.tag .ic.emo { font-size: 12px; }

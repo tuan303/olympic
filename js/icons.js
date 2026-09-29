@@ -2,12 +2,14 @@
 const svg = (body, vb = '0 0 24 24', cls = '') => `<svg class="ic ${cls}" viewBox="${vb}" aria-hidden="true" focusable="false">${body}</svg>`;
 const S = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 
+// Biểu tượng môn: emoji (máy nào cũng có sẵn, màu sắc đúng môn)
+const emo = (ch, label) => `<span class="ic emo" role="img" aria-label="${label}">${ch}</span>`;
 export const SPORT_ICON = {
-  bongda: svg(`<circle cx="12" cy="12" r="9.2" ${S}/><path d="M12 7.6l3.4 2.5-1.3 4H9.9l-1.3-4z" fill="currentColor"/><path d="M12 7.6V3.2M15.4 10.1l4.2-1.4M14.1 14.1l2.6 3.6M9.9 14.1l-2.6 3.6M8.6 10.1L4.4 8.7" ${S}/>`),
-  bongro: svg(`<circle cx="12" cy="12" r="9.2" ${S}/><path d="M2.8 12h18.4M12 2.8v18.4M5.6 5.4c2.2 1.8 3.4 4 3.4 6.6s-1.2 4.8-3.4 6.6M18.4 5.4C16.2 7.2 15 9.4 15 12s1.2 4.8 3.4 6.6" ${S}/>`),
-  keoco: svg(`<path d="M2 13.5c1.2-1.6 2.4-1.6 3.6 0s2.4 1.6 3.6 0 2.4-1.6 3.6 0 2.4 1.6 3.6 0 2.4-1.6 3.6 0" ${S}/><path d="M2 10.5c1.2 1.6 2.4 1.6 3.6 0s2.4-1.6 3.6 0 2.4 1.6 3.6 0 2.4-1.6 3.6 0 2.4 1.6 3.6 0" ${S}/><path d="M12 6v12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`),
-  caulong: svg(`<path d="M9.2 14.8L4.3 5.2c2.5-1.6 5-2.3 7.7-2.3s5.2.7 7.7 2.3l-4.9 9.6" ${S}/><path d="M8.6 5.8l1.7 8.4M15.4 5.8l-1.7 8.4M12 3v11.5" ${S}/><path d="M8.6 15h6.8v1.4a3.4 3.4 0 0 1-6.8 0z" fill="currentColor"/>`),
-  karate: svg(`<path d="M3 10.2h18v3.6H3z" ${S}/><path d="M10 9h4v6h-4z" fill="currentColor"/><path d="M11 15l-2.8 6M13 15l2.8 6" ${S}/>`),
+  bongda: emo('⚽', 'Bóng đá'),
+  bongro: emo('🏀', 'Bóng rổ'),
+  keoco: `<svg class="ic emo-svg" viewBox="0 0 24 24" role="img" aria-label="Kéo co"><circle cx="2.9" cy="7.2" r="2.2" fill="#1d4ed8"/><path d="M4.2 9.8L6.8 15.6L8.8 21.2M6.8 15.6L6.2 21.4" stroke="#1d4ed8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.8 11.2L9.8 12.4" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round"/><circle cx="21.1" cy="7.2" r="2.2" fill="#e0243b"/><path d="M19.8 9.8L17.2 15.6L15.3 21.2M17.2 15.6L17.8 21.4" stroke="#e0243b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M19.2 11.2L14.2 12.4" stroke="#e0243b" stroke-width="2" stroke-linecap="round"/><path d="M0.8 12.4H23.2" stroke="#a86b2a" stroke-width="1.7" stroke-linecap="round"/><path d="M12 12.4l-1.5 4.6h3z" fill="#f5b400"/></svg>`, // dây kéo co + dải cờ giữa (không có emoji kéo co)
+  caulong: emo('🏸', 'Cầu lông'),
+  karate: emo('🥋', 'Karate'),
 };
 
 export const I = {
