@@ -4,7 +4,7 @@
 import { esc, todayISO, fmtDate, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, uid, clone, ls } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
 import { SPORT_ICON, I } from './icons.js';
-import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName } from './ui.js';
+import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName, shortName } from './ui.js';
 import { hasFirebase, DEMO } from './store.js';
 
 let ctx = null;
@@ -49,6 +49,8 @@ export function render(app, c) {
   app.querySelector('#adm-out').addEventListener('click', async () => { await c.store.signOut(); toast('Đã đăng xuất'); c.render(); });
   app.querySelector('#adm-refresh').addEventListener('click', () => { dirty.clear(); c.render(); });
   const body = app.querySelector('#adm-body');
+  const tabsEl = app.querySelector('.admin-tabs'), onTab = tabsEl.querySelector('.chip.on');
+  if (onTab && tabsEl.scrollWidth > tabsEl.clientWidth) tabsEl.scrollLeft = onTab.offsetLeft - tabsEl.offsetLeft - (tabsEl.clientWidth - onTab.offsetWidth) / 2;
   const views = { nhap: tabEntry, tran: tabMatches, 'noi-dung': tabEvents, 'doi-hinh': tabRosters, 'thong-bao': tabNews, 'cai-dat': tabSettings, quyen: tabAdmins, 'du-lieu': tabData, 'nhat-ky': tabLogs };
   views[cur.id](body, S);
 }
@@ -149,14 +151,16 @@ function entryRow(E, m) {
   const ko = m.stage !== 'G';
   const w = m.w || '';
   const drawKO = ko && isDone(m) && m.sa === m.sb;
+  const nm = (r) => { const t = sideLabel(E, r); return r.kind === 'ath' && r.p ? `<b title="${esc(t)}">${esc(shortName(r.p))}</b><small>${esc(r.t)}</small>` : `<b>${esc(t)}</b>`; };
   return `<div class="arow" data-row="${esc(m.id)}">
-    <div class="small"><b class="num" style="font-size:15px">${esc(m.time || '')}</b><br><span class="muted">${esc(m.venue ? m.venue.replace(/^Sân /, '').slice(0, 26) : '')}</span></div>
-    <div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">${sportTag(ev.sport)}<span class="small" style="font-weight:600">${esc(evCaption(E, m))}</span>${m.upd ? `<span class="muted xs">· sửa ${esc(relTime(m.upd))}</span>` : ''}</div>
-      <div style="font-weight:700">${esc(sideLabel(E, A))} <span class="muted" style="font-weight:500">vs</span> ${esc(sideLabel(E, B))}</div>
-      ${ko ? `<div class="xs muted wline ${drawKO ? '' : 'hide'}" style="margin-top:4px">Hòa → đội thắng: <label><input type="radio" name="w-${esc(m.id)}" value="a" ${w === 'a' ? 'checked' : ''}> ${esc(A.t || A.label || 'A')}</label> <label><input type="radio" name="w-${esc(m.id)}" value="b" ${w === 'b' ? 'checked' : ''}> ${esc(B.t || B.label || 'B')}</label></div>` : ''}</div>
-    <div class="inputs">${ready ? `<input inputmode="numeric" pattern="[0-9]*" aria-label="Tỉ số ${esc(sideLabel(E, A))}" data-sa value="${m.sa ?? ''}"><span class="muted">–</span><input inputmode="numeric" pattern="[0-9]*" aria-label="Tỉ số ${esc(sideLabel(E, B))}" data-sb value="${m.sb ?? ''}">` : '<span class="muted small">Chờ xác định đội</span>'}
-      <select data-st aria-label="Trạng thái">${Object.entries(STATUS).filter(([kk]) => kk !== 'wo').map(([kk, v]) => `<option value="${kk}" ${st === kk ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div>
-    <div class="acts"><button class="btn sm primary" data-save ${ready ? '' : 'disabled'}>${I.check} Lưu</button><button class="btn sm" data-more title="Sửa chi tiết">⋯</button></div>
+    <div class="a-when"><b class="num">${esc(m.time || '—')}</b><span title="${esc(m.venue || '')}">${esc(m.venue || '')}</span></div>
+    <div class="a-info">${sportTag(ev.sport)}<span class="a-cap">${esc(evCaption(E, m))}</span>${m.upd ? `<span class="muted xs">· sửa ${esc(relTime(m.upd))}</span>` : ''}</div>
+    <div class="a-score">${ready
+      ? `<div class="a-side a">${nm(A)}</div><input class="a-in" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" aria-label="Tỉ số ${esc(sideLabel(E, A))}" data-sa value="${m.sa ?? ''}"><span class="a-dash">–</span><input class="a-in" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" aria-label="Tỉ số ${esc(sideLabel(E, B))}" data-sb value="${m.sb ?? ''}"><div class="a-side b">${nm(B)}</div>`
+      : `<div class="a-side a">${nm(A)}</div><span class="a-wait">Chờ xác định đội</span><div class="a-side b">${nm(B)}</div>`}</div>
+    ${ko ? `<div class="a-wl wline ${drawKO ? '' : 'hide'}">Hòa → đội thắng: <label><input type="radio" name="w-${esc(m.id)}" value="a" ${w === 'a' ? 'checked' : ''}> ${esc(A.t || A.label || 'A')}</label><label><input type="radio" name="w-${esc(m.id)}" value="b" ${w === 'b' ? 'checked' : ''}> ${esc(B.t || B.label || 'B')}</label></div>` : ''}
+    <select class="a-st" data-st aria-label="Trạng thái">${Object.entries(STATUS).filter(([kk]) => kk !== 'wo').map(([kk, v]) => `<option value="${kk}" ${st === kk ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select>
+    <div class="a-acts"><button class="btn sm" data-more title="Sửa chi tiết: giờ, sân, xử thua…" aria-label="Sửa chi tiết">⋯</button><button class="btn sm primary" data-save ${ready ? '' : 'disabled'}>${I.check} Lưu</button></div>
   </div>`;
 }
 function wireEntryRows(root, S) {
