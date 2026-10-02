@@ -185,8 +185,9 @@ export function bracketBox(E, m, opt = {}) {
   };
   const cap = opt.cap != null ? opt.cap : `${capFirst(E.stageLabel(m))}${E.matchNo(m) ? ' · ' + E.matchNo(m) : ''}`;
   const live = st === 'live' ? '<i class="blive">Đang đấu</i>' : '';
-  return `<div class="bm ${m.stage === 'F' ? 'final' : ''} ${st === 'wo' ? 'wo' : ''} ${done ? 'done' : ''}" data-match="${esc(m.id)}" data-fa="${esc(feeders(m, 'a'))}" data-fb="${esc(feeders(m, 'b'))}">
-    <div class="cap"><span class="stg">${esc(cap)}</span>${live}<span>${esc(m.date ? fmtDate(m.date) : '')}${m.time ? ' · ' + esc(m.time) : ''}</span></div>
+  const brc = m.branch && m.stage !== 'F' ? 'br-' + m.branch.toLowerCase() : '';
+  return `<div class="bm ${brc} ${m.stage === 'F' ? 'final' : ''} ${st === 'wo' ? 'wo' : ''} ${done ? 'done' : ''}" data-match="${esc(m.id)}" data-fa="${esc(feeders(m, 'a'))}" data-fb="${esc(feeders(m, 'b'))}">
+    <div class="cap">${brc ? `<i class="brtag">${esc(m.branch)}</i>` : ''}<span class="stg">${esc(cap)}</span>${live}<span>${esc(m.date ? fmtDate(m.date) : '')}${m.time ? ' · ' + esc(m.time) : ''}</span></div>
     ${line(A, 'a')}${line(B, 'b')}</div>`;
 }
 // Ô "Vô địch" cuối nhánh
@@ -239,7 +240,9 @@ export function indBracket(E, evId) {
     const name = d === 0 ? 'Chung kết' : d === 1 ? 'Bán kết' : d === 2 ? 'Tứ kết' : `Vòng ${max - d + 1}`;
     cols.push(colHtml(E, name, list, d === 0));
   }
-  return `<div class="bracket" style="${sportVars(ev.sport)}">${cols.join('')}${championCol(E, F)}</div>`;
+  const brs = [...new Set(E.matchesOf(evId).map((m) => m.branch).filter(Boolean))].sort();
+  const legend = brs.length > 1 ? `<div class="br-legend">${brs.map((b) => `<span class="lg-${b.toLowerCase()}"><i></i>Nhánh ${esc(b)}</span>`).join('')}<span class="lg-f"><i></i>Chung kết: Nhất nhánh A gặp Nhất nhánh B</span></div>` : '';
+  return `${legend}<div class="bracket" style="${sportVars(ev.sport)}">${cols.join('')}${championCol(E, F)}</div>`;
 }
 // Vẽ đường nối giữa các vòng (SVG phủ dưới các ô trận); tự vẽ lại khi khung đổi cỡ
 const bracketRO = typeof ResizeObserver !== 'undefined' ? new ResizeObserver((es) => es.forEach((e) => drawLines(e.target))) : null;
@@ -264,7 +267,8 @@ function drawLines(br) {
         if (sx >= tx) return;
         const mx = Math.round(sx + (tx - sx) / 2);
         const on = src.classList.contains('done');
-        paths.push(`<path class="${on ? 'on' : ''}" d="M${sx} ${sy}H${mx}V${ty}H${tx}"/>`);
+        const bc = src.classList.contains('br-a') ? 'ba' : src.classList.contains('br-b') ? 'bb' : '';
+        paths.push(`<path class="${bc} ${on ? 'on' : ''}" d="M${sx} ${sy}H${mx}V${ty}H${tx}"/>`);
       });
     }
   });

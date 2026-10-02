@@ -714,3 +714,22 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
   .admin-tabs::-webkit-scrollbar { display: none; }
   .admin-tabs .chip { flex: none; }
 }
+
+/* ---------- nhánh A / B (Karate, Cầu lông) ---------- */
+.bm.br-a { border-left-color: #1d6fe0; }
+.bm.br-a .cap { background: #e8f1ff; }
+.bm.br-a .cap .stg { color: #1550b0; }
+.bm.br-b { border-left-color: #e8590c; }
+.bm.br-b .cap { background: #fff0e4; }
+.bm.br-b .cap .stg { color: #b4430a; }
+.bm:hover.br-a { border-left-color: #1d6fe0; } .bm:hover.br-b { border-left-color: #e8590c; }
+.bm .brtag { font-style: normal; font-weight: 800; font-size: 10px; color: #fff; border-radius: 4px; padding: 0 5px; margin-right: 6px; }
+.bm.br-a .brtag { background: #1d6fe0; } .bm.br-b .brtag { background: #e8590c; }
+.bm .cap { justify-content: flex-start; } .bm .cap > span:last-child { margin-left: auto; }
+.blines path.ba { stroke: #b9d2f6; } .blines path.ba.on { stroke: #1d6fe0; }
+.blines path.bb { stroke: #f7c7a3; } .blines path.bb.on { stroke: #e8590c; }
+.br-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 0 0 12px; }
+.br-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.br-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.br-legend .lg-a i { background: #1d6fe0; } .br-legend .lg-b i { background: #e8590c; } .br-legend .lg-f i { background: var(--yellow); }
+.br-legend .lg-f { color: var(--muted); font-weight: 500; }
