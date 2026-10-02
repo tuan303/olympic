@@ -17,9 +17,9 @@ const SESSION = {
 };
 // Karate thi tập trung 1 ngày (theo kế hoạch đã phê duyệt)
 const KARATE_DAY = {
-  2: ['2026-11-04', '08:00', '11:00'], 3: ['2026-11-04', '08:00', '11:00'],
+  2: ['2026-11-04', '08:00', '11:30'], 3: ['2026-11-04', '08:00', '11:30'],
   4: ['2026-11-04', '13:30', '15:30'], 5: ['2026-11-04', '13:30', '15:30'],
-  6: ['2026-10-30', '07:40', '11:00'], 7: ['2026-10-30', '07:40', '11:00'], 8: ['2026-10-30', '07:40', '11:00'],
+  6: ['2026-10-30', '07:40', '11:30'], 7: ['2026-10-30', '07:40', '11:30'], 8: ['2026-10-30', '07:40', '11:30'],
   9: ['2026-10-30', '13:30', '15:30'], 10: ['2026-10-30', '13:30', '15:30'], 11: ['2026-10-30', '13:30', '15:30'], 12: ['2026-10-30', '13:30', '15:30'],
 };
 const KARATE_VENUE = 'Sảnh tầng 1 – khu tập trung xe buýt';
@@ -170,6 +170,8 @@ const KPATCH = {
   // K5 Kata Nam nhánh B — sơ đồ BTC gửi 02/10: (1) gặp 5A3 Phạm An Nguyên; (7) = (3)-(4); (8) = (5)-(6); BK2 = (7)-(8)
   'K5-KATA NAM-xong!K28': '(1) - 5A3 Phạm An Nguyên', 'K5-KATA NAM-xong!K29': '5A6 KO ĐKY - (2)',
   'K5-KATA NAM-xong!K31': '(3) - (4)', 'K5-KATA NAM-xong!K32': '(5) - (6)', 'K5-KATA NAM-xong!K33': '(7) - (8)',
+  'K5-KATA NAM-xong!K9': '5A1 KO ĐKY - 5A7 KO ĐKY', 'K5-KATA NAM-xong!K10': '(1) - 5A8 Bùi Ngọc Lâm',
+  'K5-KATA NỮ-xong!K29': '5A6 Vũ Trà My - (2)',
   // K5 Kata Nữ nhánh A — trận 2: 5A3 không đăng ký
   'K5-KATA NỮ-xong!K8': '5A2 Nguyễn Thảo Nguyên - 5A3 KO ĐKY',
   'K5-KATA NỮ-xong!K26': '5A1 KO ĐKY - 5A7 Nguyễn Tuệ Anh', 'K5-KATA NỮ-xong!K27': '5A2 KO ĐKY - 5A0 KO ĐKY',
