@@ -178,7 +178,7 @@ const seed = {
 const OUT = X.OUT;
 const js = '// Dữ liệu gốc Olympic 2026–2027 — SINH TỰ ĐỘNG bởi tools/build.js từ các file Excel của Tổ Thể thao.\n' +
   '// Đừng sửa tay: cập nhật kết quả/lịch trên trang Quản trị; muốn nạp lại từ Excel thì chạy lại tools/build.js.\n' +
-  'export const SEED = ' + JSON.stringify(seed) + ';\n';
+  'export const SEED = ' + JSON.stringify(require('./seed-fixes.js')(seed)) + ';\n';
 fs.writeFileSync(OUT, js);
 fs.writeFileSync(X.REPORT, report.join('\n') + '\n');
 const cnt = {};

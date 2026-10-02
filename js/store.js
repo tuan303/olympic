@@ -52,12 +52,14 @@ function compose(parts) {
     rules: { ...s.rules, ...(cfg.rules || {}) }, general: s.general, sourceNotes: s.sourceNotes || [],
     events: { ...s.events }, matches: { ...s.matches }, rosters: { ...seedRosters },
   };
+  const removed = new Set(s.removed || []);
   for (const id of OVERRIDE_DOCS) {
     const d = parts[id];
     if (!d) continue;
     for (const [k, e] of Object.entries(d.e || {})) if (e) db.events[k] = e;
     for (const [k, r] of Object.entries(d.r || {})) { if (r && r.list && r.list.length) db.rosters[k] = r; else delete db.rosters[k]; }
     for (const [k, m0] of Object.entries(d.m || {})) {
+      if (removed.has(k)) continue; // trận BTC đã bỏ khỏi sơ đồ (vd nhánh thừa) — bỏ qua bản lưu cũ
       const base = s.matches[k];
       // Trận có "fix" = BTC cấp lại sơ đồ sau khi đã sửa trên máy chủ → cặp đấu theo lịch gốc, giữ tỉ số đã nhập
       if (base && base.fix && (!m0 || !m0.upd || m0.upd < base.fix)) { if (m0) db.matches[k] = { ...m0, ...pick(base, FIX_FIELDS) }; continue; }
