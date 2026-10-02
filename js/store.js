@@ -57,11 +57,19 @@ function compose(parts) {
     if (!d) continue;
     for (const [k, e] of Object.entries(d.e || {})) if (e) db.events[k] = e;
     for (const [k, r] of Object.entries(d.r || {})) { if (r && r.list && r.list.length) db.rosters[k] = r; else delete db.rosters[k]; }
-    for (const [k, m] of Object.entries(d.m || {})) { if (m === null) delete db.matches[k]; else db.matches[k] = m && VENUE_RENAME[m.venue] ? { ...m, venue: VENUE_RENAME[m.venue] } : m; }
+    for (const [k, m0] of Object.entries(d.m || {})) {
+      const base = s.matches[k];
+      // Trận có "fix" = BTC cấp lại sơ đồ sau khi đã sửa trên máy chủ → cặp đấu theo lịch gốc, giữ tỉ số đã nhập
+      if (base && base.fix && (!m0 || !m0.upd || m0.upd < base.fix)) { if (m0) db.matches[k] = { ...m0, ...pick(base, FIX_FIELDS) }; continue; }
+      if (m0 === null) { delete db.matches[k]; continue; }
+      db.matches[k] = VENUE_RENAME[m0.venue] ? { ...m0, venue: VENUE_RENAME[m0.venue] } : m0;
+    }
   }
   return db;
 }
 const docOf = (ev) => `r_${ev.sport}_${ev.level}`;
+const FIX_FIELDS = ['a', 'b', 'stage', 'label', 'n', 'branch', 'fix'];
+const pick = (o, ks) => Object.fromEntries(ks.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
 
 // ============================================================
 export async function init() {
