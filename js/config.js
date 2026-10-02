@@ -38,4 +38,4 @@ export const VENUE_RENAME = {
 
 // Phiên bản tài nguyên: đọc từ import map trong index.html (config.js được nạp dạng config.js?v=…).
 // Khi phát hành chỉ cần đổi các "?v=…" trong index.html. Giá trị dự phòng dùng cho trình duyệt rất cũ.
-export const ASSET_VER = new URL(import.meta.url).searchParams.get('v') || '2026-09-30a';
+export const ASSET_VER = new URL(import.meta.url).searchParams.get('v') || '2026-10-02a';

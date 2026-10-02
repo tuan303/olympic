@@ -166,7 +166,12 @@ const KPATCH = {
   'K8-KATA CN NAM-xong !K12': '7 - (3)', 'K8-KATA CN NỮ-xong!K12': '7 - (3)',
   'K9 - KATA CN NAM - Xong!K9': '7 - (3)', 'K9 - KATA CN NAM - Xong!K40': '(1) - 16', 'K9 - KATA CN NAM - Xong!K42': '(3) - 22',
   'K9 - KATA CN NỮ-Xong!K10': '7 - (3)', 'K9 - KATA CN NỮ-Xong!K43': '(1) - 16', 'K9 - KATA CN NỮ-Xong!K45': '(3) - 22',
-  'K5-KATA NAM-xong!K27': '5A2 KO ĐKY - 5A0 KO ĐKY', 'K5-KATA NAM-xong!K31': '(3) - 5B0 Trần Đăng Tuấn',
+  'K5-KATA NAM-xong!K27': '5A2 KO ĐKY - 5A0 KO ĐKY',
+  // K5 Kata Nam nhánh B — sơ đồ BTC gửi 02/10: (1) gặp 5A3 Phạm An Nguyên; (7) = (3)-(4); (8) = (5)-(6); BK2 = (7)-(8)
+  'K5-KATA NAM-xong!K28': '(1) - 5A3 Phạm An Nguyên', 'K5-KATA NAM-xong!K29': '5A6 KO ĐKY - (2)',
+  'K5-KATA NAM-xong!K31': '(3) - (4)', 'K5-KATA NAM-xong!K32': '(5) - (6)', 'K5-KATA NAM-xong!K33': '(7) - (8)',
+  // K5 Kata Nữ nhánh A — trận 2: 5A3 không đăng ký
+  'K5-KATA NỮ-xong!K8': '5A2 Nguyễn Thảo Nguyên - 5A3 KO ĐKY',
   'K5-KATA NỮ-xong!K26': '5A1 KO ĐKY - 5A7 Nguyễn Tuệ Anh', 'K5-KATA NỮ-xong!K27': '5A2 KO ĐKY - 5A0 KO ĐKY',
   'K11-KATA CN NỮ-xong!O9': '11L0 KO ĐKY - 11L01 KO ĐKY',
 };
