@@ -5,7 +5,7 @@ import * as store from './store.js';
 import { esc, todayISO, fmtDate, fmtFull, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, fold, ls, debounce } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass } from './engine.js';
 import { SPORT_ICON, I, heroArt } from './icons.js';
-import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, drawBrackets, openRoster, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
+import { sportVars, sportTag, levelName, capFirst, fixtureList, standingsTable, teamBracket, indBracket, podiumHtml, drawBrackets, openRoster, ruleBody, matchDetail, openModal, closeModal, toast, statusPill } from './ui.js';
 import { ASSET_VER } from './config.js';
 
 const app = document.getElementById('app');
@@ -484,20 +484,6 @@ function viewClass(S) {
 // ============================================================
 //  ĐIỀU LỆ
 // ============================================================
-function ruleBody(text) {
-  return String(text || '').split('\n').map((raw) => {
-    const l = raw.trim();
-    if (!l) return '';
-    const e = esc(l);
-    if (/^(ĐIỀU|ĐIỂU)\s+[IVX]+|^[IVX]+\.\s|^[IVX]+\.[A-ZĐ]/.test(l)) return `<h3>${e}</h3>`;
-    if (/^\d+(\.\d+)*\.?\s/.test(l) && l.length < 90 && !/[.;]$/.test(l)) return `<p><b>${e}</b></p>`;
-    if (/^[-–]\s*/.test(l)) return `<p class="li">${esc(l.replace(/^[-–]\s*/, ''))}</p>`;
-    if (/^\+\s*/.test(l)) return `<p class="li2">${esc(l.replace(/^\+\s*/, ''))}</p>`;
-    if (/^\*/.test(l)) return `<div class="note">${esc(l.replace(/^\*\s*/, ''))}</div>`;
-    if (/^'/.test(l)) return `<p class="li">${esc(l.replace(/^'[-\s]*/, ''))}</p>`;
-    return `<p>${e}</p>`;
-  }).join('');
-}
 function viewRules(S) {
   const rules = S.db.rules || {};
   const general = S.db.general || {};
@@ -517,7 +503,7 @@ function viewRules(S) {
       <h3>Giáo viên phụ trách từng môn</h3>${contacts}<div class="note">Tổ Thể thao chỉ làm việc với GVCN, không làm việc trực tiếp với phụ huynh. Phụ huynh cần trao đổi vui lòng liên hệ GVCN của lớp.</div>`;
   } else {
     const r = rules[`${sp}-${lv}`];
-    doc = r ? `<div class="doc-title">${esc(r.title)}</div>${ruleBody(r.body)}<div class="sign">${esc((r.dated || '').replace(/NGƯỜI LẬP.*$/i, '').trim())}${r.author ? `<br>Người lập: <b>${esc(capFirst(r.author))}</b>` : ''}</div>`
+    doc = r ? `${r.upd ? `<div class="doc-upd">Cập nhật lần cuối: ${esc(fmtFull(new Date(r.upd).toISOString().slice(0, 10)))}</div>` : ''}<div class="doc-title">${esc(r.title)}</div>${ruleBody(r.body)}<div class="sign">${esc((r.dated || '').replace(/NGƯỜI LẬP.*$/i, '').trim())}${r.author ? `<br>Người lập: <b>${esc(capFirst(r.author))}</b>` : ''}</div>`
       : `<div class="empty-box">${I.book}<b>Chưa có điều lệ</b></div>`;
   }
   app.innerHTML = `<div class="wrap page"><div class="page-head"><div><div class="eyebrow">Điều lệ giải</div><h1>${sp === 'chung' ? 'Quy định chung' : esc(SPORT[sp] ? SPORT[sp].name : '')} · ${esc(levelName(lv))}</h1><p>Theo văn bản của Tổ Thể thao. Chỉ Ban tổ chức có quyền điều chỉnh, bổ sung nội dung điều lệ.</p></div><button class="btn no-print hide-sm" onclick="window.print()">${I.print} In điều lệ</button></div>

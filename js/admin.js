@@ -4,7 +4,7 @@
 import { esc, todayISO, fmtDate, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, uid, clone, ls } from './util.js';
 import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
 import { SPORT_ICON, I } from './icons.js';
-import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName, shortName } from './ui.js';
+import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName, shortName, ruleBody } from './ui.js';
 import { hasFirebase, DEMO } from './store.js';
 
 let ctx = null;
@@ -23,6 +23,7 @@ const TABS = [
   { id: 'noi-dung', label: 'Bảng đấu & xếp hạng', icon: I.list },
   { id: 'doi-hinh', label: 'Danh sách VĐV', icon: I.users },
   { id: 'thong-bao', label: 'Thông báo', icon: I.bell, all: true },
+  { id: 'dieu-le', label: 'Điều lệ', icon: I.book, all: true },
   { id: 'cai-dat', label: 'Cài đặt', icon: I.gear, all: true },
   { id: 'quyen', label: 'Quản trị viên', icon: I.users, super: true, live: true },
   { id: 'du-lieu', label: 'Dữ liệu & xuất file', icon: I.download },
@@ -51,7 +52,7 @@ export function render(app, c) {
   const body = app.querySelector('#adm-body');
   const tabsEl = app.querySelector('.admin-tabs'), onTab = tabsEl.querySelector('.chip.on');
   if (onTab && tabsEl.scrollWidth > tabsEl.clientWidth) tabsEl.scrollLeft = onTab.offsetLeft - tabsEl.offsetLeft - (tabsEl.clientWidth - onTab.offsetWidth) / 2;
-  const views = { nhap: tabEntry, tran: tabMatches, 'noi-dung': tabEvents, 'doi-hinh': tabRosters, 'thong-bao': tabNews, 'cai-dat': tabSettings, quyen: tabAdmins, 'du-lieu': tabData, 'nhat-ky': tabLogs };
+  const views = { nhap: tabEntry, tran: tabMatches, 'noi-dung': tabEvents, 'doi-hinh': tabRosters, 'thong-bao': tabNews, 'dieu-le': tabRules, 'cai-dat': tabSettings, quyen: tabAdmins, 'du-lieu': tabData, 'nhat-ky': tabLogs };
   views[cur.id](body, S);
 }
 
@@ -502,6 +503,65 @@ function tabRosters(body, S) {
   function bindSel() { body.querySelector('#rev').addEventListener('change', (e) => { if (dirty.has('roster') && !confirm('Danh sách đang sửa chưa lưu. Bỏ qua?')) { e.target.value = evId; return; } dirty.delete('roster'); ctx.setQuery({ ev: e.target.value }); }); }
 }
 
+// ---------------- điều lệ giải (quyền Toàn giải) ----------------
+function tabRules(body, S) {
+  const db = S.db;
+  const docs = [
+    ...LEVELS.map((l) => ({ key: 'general:' + l.id, label: `Quy định chung · ${l.name}`, gen: true, lv: l.id })),
+    ...SPORTS.flatMap((s) => LEVELS.filter((l) => db.rules[`${s.id}-${l.id}`]).map((l) => ({ key: `${s.id}-${l.id}`, label: `${s.name} · ${l.name}`, sport: s.id, lv: l.id }))),
+  ];
+  const key = ctx.route.q.get('doc') || docs[0].key;
+  const doc = docs.find((d) => d.key === key) || docs[0];
+  const edits = doc.gen ? db.generalEdits : db.ruleEdits;
+  const k = doc.gen ? doc.lv : doc.key;
+  const edited = edits && edits[k];
+  const cur = doc.gen ? (db.general[doc.lv] || {}) : (db.rules[doc.key] || {});
+  const ta = (id, label, val, rows, help = '') => `<label class="field full"><span>${label}</span><textarea class="inp rule-ta" id="${id}" rows="${rows}" spellcheck="false">${esc(val || '')}</textarea>${help ? `<small class="help">${help}</small>` : ''}</label>`;
+  const fields = doc.gen
+    ? ta('r-register', 'Quy định đăng ký thi đấu', cur.register, 12) + ta('r-important', 'Lưu ý quan trọng', cur.important, 10) + ta('r-extra', 'Điều chỉnh lịch học (để trống nếu không có)', cur.extra, 5)
+    : ta('r-title', 'Tiêu đề (mỗi dòng một dòng tiêu đề)', cur.title, 3) + ta('r-body', 'Nội dung điều lệ', cur.body, 24)
+      + `<div class="formgrid"><label class="field"><span>Ngày ban hành</span><input class="inp" id="r-dated" value="${esc((cur.dated || '').replace(/NGƯỜI LẬP.*$/i, '').trim())}" placeholder="Hà Nội, ngày … tháng … năm 2026"></label><label class="field"><span>Người lập</span><input class="inp" id="r-author" value="${esc(cur.author || '')}"></label></div>`;
+  const sel = `<div class="filters"><select class="sel" id="r-doc" style="min-width:280px">${[['Quy định chung', docs.filter((d) => d.gen)], ...SPORTS.map((s) => [s.name, docs.filter((d) => d.sport === s.id)])].map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((d) => `<option value="${d.key}" ${d.key === doc.key ? 'selected' : ''}>${esc(d.label)}${(d.gen ? db.generalEdits : db.ruleEdits)[d.gen ? d.lv : d.key] ? ' ✎' : ''}</option>`).join('')}</optgroup>`).join('')}</select>
+    <a class="btn sm" href="#/dieu-le/${doc.gen ? 'chung' : doc.sport}/${doc.lv}" target="_blank">${I.book} Xem trang công khai</a></div>`;
+  body.innerHTML = `${sel}
+    <div class="card card-pad" style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="small">${edited ? `<b style="color:#8a6400">Đã chỉnh sửa</b> · ${esc(edited.by || '')} · ${esc(relTime(edited.upd))}` : '<span class="muted">Đang dùng bản gốc từ văn bản của Tổ Thể thao</span>'}</span>
+      <span style="margin-left:auto;display:flex;gap:8px">${edited ? `<button class="btn sm" id="r-reset">${I.refresh} Khôi phục bản gốc</button>` : ''}<button class="btn primary" id="r-save">${I.check} Lưu điều lệ</button></span></div>
+    <div class="rule-edit">
+      <div class="card card-pad"><div class="formgrid">${fields}</div>
+        <p class="help">Cách trình bày: dòng bắt đầu bằng <b>ĐIỀU I</b> hoặc <b>I.</b> → tiêu đề mục · <b>1.</b> → tiêu đề nhỏ · <b>-</b> → gạch đầu dòng · <b>+</b> → ý con · <b>*</b> → ô lưu ý màu vàng.</p></div>
+      <div class="card doc rule-preview"><div class="eyebrow" style="margin-bottom:8px">Xem trước</div><div id="r-prev"></div></div>
+    </div>`;
+  const $ = (s) => body.querySelector(s);
+  const read = () => doc.gen
+    ? { register: $('#r-register').value, important: $('#r-important').value, extra: $('#r-extra').value }
+    : { title: $('#r-title').value.trim(), body: $('#r-body').value, dated: $('#r-dated').value.trim(), author: $('#r-author').value.trim() };
+  const preview = () => {
+    const v = read();
+    $('#r-prev').innerHTML = doc.gen
+      ? `<h3>Quy định đăng ký thi đấu</h3>${ruleBody(v.register)}<h3>Lưu ý quan trọng</h3>${ruleBody(v.important)}${v.extra.trim() ? `<h3>Điều chỉnh lịch học</h3>${ruleBody(v.extra)}` : ''}`
+      : `<div class="doc-title">${esc(v.title)}</div>${ruleBody(v.body)}<div class="sign">${esc(v.dated)}${v.author ? `<br>Người lập: <b>${esc(capFirst(v.author))}</b>` : ''}</div>`;
+  };
+  preview();
+  body.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', () => { dirty.add('rules'); preview(); }));
+  $('#r-doc').addEventListener('change', (e) => {
+    if (dirty.has('rules') && !confirm('Điều lệ đang sửa chưa lưu. Bỏ qua thay đổi?')) { e.target.value = doc.key; return; }
+    dirty.delete('rules'); ctx.setQuery({ doc: e.target.value });
+  });
+  $('#r-save').addEventListener('click', async (e) => {
+    const v = read();
+    if (!doc.gen && (!v.title || !v.body.trim())) return toast('Cần có tiêu đề và nội dung', 'err');
+    e.currentTarget.disabled = true;
+    try { await ctx.store.saveRule(doc.key, v); dirty.delete('rules'); toast('Đã lưu điều lệ — trang công khai cập nhật ngay', 'ok'); ctx.render(); }
+    catch (err) { toast(err.message, 'err'); e.currentTarget.disabled = false; }
+  });
+  const rs = $('#r-reset');
+  if (rs) rs.addEventListener('click', async () => {
+    if (!confirm('Bỏ các chỉnh sửa và quay về bản gốc của điều lệ này?')) return;
+    try { await ctx.store.saveRule(doc.key, null); dirty.delete('rules'); toast('Đã khôi phục bản gốc', 'ok'); ctx.render(); } catch (err) { toast(err.message, 'err'); }
+  });
+}
+
 function tabNews(body, S) {
   const news = (S.db.news || []).slice().sort((a, b) => (b.at || 0) - (a.at || 0));
   body.innerHTML = `<div class="grid2" style="align-items:start">
@@ -564,7 +624,7 @@ async function tabAdmins(body) {
     <div class="card card-pad"><h3 style="font-weight:700;margin-bottom:10px">Cấp quyền</h3>
       <div class="formgrid"><label class="field full"><span>Email trường</span><input class="inp" id="a-email" placeholder="ten@hoangmaistarschool.edu.vn"></label>
       <label class="field full"><span>Tên hiển thị</span><input class="inp" id="a-name" placeholder="VD: Cô Oanh – Bóng đá"></label>
-      <div class="field full"><span>Phạm vi</span><label class="check"><input type="checkbox" id="a-all"> Toàn giải (mọi môn, thông báo, cài đặt)</label>
+      <div class="field full"><span>Phạm vi</span><label class="check"><input type="checkbox" id="a-all"> Toàn giải (mọi môn, thông báo, cài đặt, điều lệ)</label>
         <div class="chips" style="margin-top:6px">${SPORTS.map((s) => `<label class="chip"><input type="checkbox" data-sp="${s.id}"> ${esc(s.name)}</label>`).join('')}</div></div></div>
       <div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="btn primary" id="a-add">${I.plus} Cấp quyền</button></div>
       <p class="help">Quản trị cao nhất (ghi trong js/config.js và firestore.rules) luôn có toàn quyền.</p></div>

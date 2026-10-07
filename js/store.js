@@ -49,10 +49,13 @@ function compose(parts) {
   const cfg = parts.config || {};
   const db = {
     meta: { ...s.meta, ...(cfg.meta || {}) }, settings: cfg.settings || {}, news: cfg.news || [],
-    rules: { ...s.rules, ...(cfg.rules || {}) }, general: s.general, sourceNotes: s.sourceNotes || [],
+    rules: { ...s.rules }, general: { ...s.general }, sourceNotes: s.sourceNotes || [],
+    ruleEdits: cfg.rules || {}, generalEdits: cfg.general || {},
     events: { ...s.events }, matches: { ...s.matches }, rosters: { ...seedRosters },
   };
   const removed = new Set(s.removed || []);
+  for (const [k, r] of Object.entries(cfg.rules || {})) if (r) db.rules[k] = { ...(s.rules[k] || {}), ...r };
+  for (const [k, g] of Object.entries(cfg.general || {})) if (g) db.general[k] = { ...(s.general[k] || {}), ...g };
   for (const id of OVERRIDE_DOCS) {
     const d = parts[id];
     if (!d) continue;
@@ -206,6 +209,15 @@ export async function saveRoster(evId, cls, list) {
   requireFb();
   await fb.setOverride(d, 'r', key, val);
   fb.addLog({ by: who(), action: `Danh sách VĐV ${cls} (${clean.length})`, ev: evId });
+}
+// Sửa điều lệ một môn/cấp ('bongda-THCS') hoặc quy định chung ('general:THCS'); value null = khôi phục bản gốc
+export async function saveRule(key, value) {
+  if (!(state.role && (state.role.all || state.role.super))) throw new Error('Cần quyền quản trị toàn giải.');
+  const gen = key.startsWith('general:');
+  const field = gen ? 'general' : 'rules', k = gen ? key.slice(8) : key;
+  const cur = { ...((gen ? state.db.generalEdits : state.db.ruleEdits) || {}) };
+  cur[k] = value ? { ...value, upd: Date.now(), by: who() } : null;
+  return saveConfig({ [field]: cur }, `${value ? 'Sửa' : 'Khôi phục'} điều lệ ${gen ? 'Quy định chung ' + k : k}`);
 }
 export async function saveConfig(patch, action = 'Sửa cấu hình') {
   if (!(state.role && (state.role.all || state.role.super))) throw new Error('Cần quyền quản trị toàn giải.');

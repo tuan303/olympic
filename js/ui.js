@@ -333,6 +333,22 @@ export function toast(msg, type = '') {
   setTimeout(() => t.remove(), type === 'err' ? 5000 : 2600);
 }
 
+// ---------- điều lệ: văn bản thô → HTML (tiêu đề ĐIỀU/I., gạch đầu dòng -, +, ghi chú *) ----------
+export function ruleBody(text) {
+  return String(text || '').split('\n').map((raw) => {
+    const l = raw.trim();
+    if (!l) return '';
+    const e = esc(l);
+    if (/^(ĐIỀU|ĐIỂU)\s+[IVX]+|^[IVX]+\.\s|^[IVX]+\.[A-ZĐ]/.test(l)) return `<h3>${e}</h3>`;
+    if (/^\d+(\.\d+)*\.?\s/.test(l) && l.length < 90 && !/[.;]$/.test(l)) return `<p><b>${e}</b></p>`;
+    if (/^[-–]\s*/.test(l)) return `<p class="li">${esc(l.replace(/^[-–]\s*/, ''))}</p>`;
+    if (/^\+\s*/.test(l)) return `<p class="li2">${esc(l.replace(/^\+\s*/, ''))}</p>`;
+    if (/^\*/.test(l)) return `<div class="note">${esc(l.replace(/^\*\s*/, ''))}</div>`;
+    if (/^'/.test(l)) return `<p class="li">${esc(l.replace(/^'[-\s]*/, ''))}</p>`;
+    return `<p>${e}</p>`;
+  }).join('');
+}
+
 // ---------- danh sách VĐV đội ----------
 export function rosterList(E, evId, cls, opt = {}) {
   const list = E.rosterOf(evId, cls);
