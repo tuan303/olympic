@@ -54,7 +54,7 @@ function compose(parts) {
     events: { ...s.events }, matches: { ...s.matches }, rosters: { ...seedRosters },
   };
   const removed = new Set(s.removed || []);
-  for (const [k, r] of Object.entries(cfg.rules || {})) if (r) db.rules[k] = { ...(s.rules[k] || {}), ...r };
+  for (const [k, r] of Object.entries(cfg.rules || {})) if (r) db.rules[k] = { ...(s.rules[k] || {}), ...withNewBongroPoints(k, r, s.rules[k]) };
   for (const [k, g] of Object.entries(cfg.general || {})) if (g) db.general[k] = { ...(s.general[k] || {}), ...g };
   for (const id of OVERRIDE_DOCS) {
     const d = parts[id];
@@ -73,6 +73,16 @@ function compose(parts) {
   return db;
 }
 const docOf = (ev) => `r_${ev.sport}_${ev.level}`;
+// Điều lệ Bóng rổ BTC sửa TRƯỚC 08/10 (khi đổi cách tính điểm): giữ phần sửa, thay mục "3. Cách tính điểm" bằng bản mới
+const BONGRO_POINTS_AT = Date.parse('2026-10-08T00:00:00+07:00');
+const sec3 = (t) => { const L = String(t || '').split('\n'); const i = L.findIndex((l) => /^\s*3\.\s*Cách tính điểm/i.test(l)); const j = L.findIndex((l, n) => n > i && /^\s*4\.\s*/.test(l)); return { L, i, j }; };
+function withNewBongroPoints(k, r, base) {
+  if (!k.startsWith('bongro-') || !base || !r.body || (r.upd || 0) >= BONGRO_POINTS_AT) return r;
+  const o = sec3(r.body), b = sec3(base.body);
+  if (o.i < 0 || o.j < 0 || b.i < 0 || b.j < 0) return r;
+  o.L.splice(o.i, o.j - o.i, ...b.L.slice(b.i, b.j));
+  return { ...r, body: o.L.join('\n') };
+}
 const FIX_FIELDS = ['a', 'b', 'stage', 'label', 'n', 'branch', 'fix'];
 const pick = (o, ks) => Object.fromEntries(ks.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
 
@@ -256,7 +266,8 @@ export async function importBackup(json) {
   if (!data.events || !data.matches) throw new Error('File sao lưu không đúng định dạng.');
   await loadSeed();
   const parts = diffFromSeed(data);
-  const config = { meta: data.meta || {}, settings: data.settings || {}, news: data.news || [] };
+  // sao lưu cũ (trước khi đổi điểm Bóng rổ) không có pointsVer → ghi 1 để cài đặt điểm cũ trong file bị bỏ qua
+  const config = { meta: data.meta || {}, settings: { pointsVer: 1, ...(data.settings || {}) }, news: data.news || [] };
   if (state.mode === 'local') { ls.set(LOCAL_KEY, { ...parts, config }); set({ db: compose({ ...parts, config }) }); return; }
   requireFb();
   await fb.replaceOverrides(parts);

@@ -25,9 +25,24 @@ export const gradeOfClass = (t) => { const m = String(t || '').match(/^(\d{1,2})
 // Điểm theo điều lệ (Quản trị có thể đổi trong mục Cài đặt)
 export const DEFAULT_POINTS = {
   bongda: { w: 3, d: 1, l: 0 },   // Điều lệ Bóng đá: Thắng 3 – Hòa 1 – Thua 0
-  bongro: { w: 1, d: 0, l: 0 },   // Điều lệ Bóng rổ: Thắng 1 – Thua 0
+  bongro: { w: 2, d: 0, l: 1, ff: 0 }, // Điều lệ Bóng rổ (BTC sửa 08/10): Thắng 2 – Thua 1 – Bỏ cuộc 0
   keoco: { w: 2, d: 0, l: 0 },    // Điều lệ Kéo co: Thắng 2 – Thua 0
 };
+// Phiên bản cách tính điểm: cài đặt điểm Bóng rổ lưu TRƯỚC khi điều lệ đổi (v < 2) bị bỏ qua
+export const POINTS_VER = 2;
+// Bên bị xử thua (bỏ cuộc / đến muộn): m.ff = 'a' | 'b', hoặc ghi chú "Bên A/B bị xử thua…"
+export function forfeitSide(m) {
+  if (!m) return '';
+  if (m.ff === 'a' || m.ff === 'b') return m.ff;
+  const pen = m.pen || '';
+  const x = /Bên\s*([AB])\s*bị\s*xử\s*thua/i.exec(pen);
+  if (x) return x[1].toLowerCase();
+  // ghi chú gõ tay ("Xử thua do đến muộn", "7A2 bị xử thua"…): đội thua theo tỉ số là đội bị xử thua
+  if (/xử\s*thua/i.test(pen) && Number.isFinite(m.sa) && Number.isFinite(m.sb) && m.sa !== m.sb) return m.sa < m.sb ? 'a' : 'b';
+  return '';
+}
+// Môn không có kết quả hòa: hòa sau thời gian chính → hiệp phụ / ném phạt, đội thắng ghi ở m.w
+export const NO_DRAW = { bongro: true };
 // Tỉ số xử thua khi bỏ cuộc / đến muộn (theo điều lệ)
 export const FORFEIT = { bongda: [3, 0], bongro: [20, 0], keoco: [3, 0], caulong: [25, 0], karate: [3, 0] };
 
@@ -58,7 +73,13 @@ export function createEngine(db) {
   for (const list of Object.values(byEv)) list.sort(cmpMatch);
   const memo = new Map();
   const cached = (k, fn) => { if (memo.has(k)) return memo.get(k); const v = fn(); memo.set(k, v); return v; };
-  const points = (sport) => ({ ...DEFAULT_POINTS[sport], ...((settings.points || {})[sport] || {}) });
+  const points = (sport) => {
+    let o = (settings.points || {})[sport] || {};
+    if (sport === 'bongro' && (settings.pointsVer || 1) < POINTS_VER) o = {}; // cài đặt cũ (thắng 1 – thua 0) không còn dùng
+    const P = { ...DEFAULT_POINTS[sport], ...o };
+    if (P.ff == null) P.ff = P.l; // môn không có điểm bỏ cuộc riêng: bỏ cuộc = thua
+    return P;
+  };
 
   // ---------------- phân giải một bên của trận ----------------
   function resolveSide(m, which, depth = 0) {
@@ -79,7 +100,8 @@ export function createEngine(db) {
       const [g, rk] = rest.split(':');
       const label = `${RANK_WORD[rk] || 'Hạng ' + rk} bảng ${g}`;
       const st = standings(m.ev, g);
-      if (st.complete) { const row = st.rows[Number(rk) - 1]; if (row) return { kind: 'team', t: row.t, via: label }; }
+      if (st.complete) { const row = st.rows[Number(rk) - 1]; if (row && !(st.drawNeeded || []).some((blk) => blk.includes(row.t))) return { kind: 'team', t: row.t, via: label }; }
+      if (st.complete && (st.drawNeeded || []).length) return { kind: 'tbd', label: label + ' (chờ bốc thăm)' };
       return { kind: 'tbd', label };
     }
     if (type === 'W' || type === 'L') {
@@ -160,18 +182,24 @@ export function createEngine(db) {
         const ra = rows.get(A), rb = rows.get(B);
         ra.p++; rb.p++; ra.f += m.sa; ra.a += m.sb; rb.f += m.sb; rb.a += m.sa;
         ra.fp += (m.ya || 0) + 2 * (m.ra || 0); rb.fp += (m.yb || 0) + 2 * (m.rb || 0);
-        if (m.sa > m.sb) { ra.w++; rb.l++; ra.pts += P.w; rb.pts += P.l; ra.form.push('T'); rb.form.push('B'); h2h[A + '>' + B] = 1; }
-        else if (m.sb > m.sa) { rb.w++; ra.l++; rb.pts += P.w; ra.pts += P.l; rb.form.push('T'); ra.form.push('B'); h2h[B + '>' + A] = 1; }
+        const ff = forfeitSide(m); // đội bỏ cuộc nhận điểm "bỏ cuộc" (Bóng rổ: 0) thay vì điểm thua
+        const tw = m.sa === m.sb && NO_DRAW[ev.sport] && (m.w === 'a' || m.w === 'b') ? m.w : ''; // hòa → thắng ném phạt
+        if (m.sa > m.sb || tw === 'a') { ra.w++; rb.l++; ra.pts += P.w; rb.pts += ff === 'b' ? P.ff : P.l; if (ff === 'b') rb.ffc = (rb.ffc || 0) + 1; ra.form.push('T'); rb.form.push('B'); h2h[A + '>' + B] = 1; }
+        else if (m.sb > m.sa || tw === 'b') { rb.w++; ra.l++; rb.pts += P.w; ra.pts += ff === 'a' ? P.ff : P.l; if (ff === 'a') ra.ffc = (ra.ffc || 0) + 1; rb.form.push('T'); ra.form.push('B'); h2h[B + '>' + A] = 1; }
         else { ra.d++; rb.d++; ra.pts += P.d; rb.pts += P.d; ra.form.push('H'); rb.form.push('H'); }
       }
       const list = [...rows.values()];
       list.forEach((r) => { r.diff = r.f - r.a; });
       const manual = (ev.manualOrder && ev.manualOrder[g]) || [];
       const mi = (t) => { const i = manual.indexOf(t); return i < 0 ? 999 + teams.indexOf(t) : i; };
-      const useH2H = ev.sport === 'bongro' || ev.sport === 'keoco';
-      const base = (x, y) => y.diff - x.diff || y.f - x.f || (ev.sport === 'bongda' ? x.fp - y.fp : 0) || mi(x.t) - mi(y.t);
+      const bro = ev.sport === 'bongro';
+      const useH2H = ev.sport === 'keoco';
+      // Bóng rổ (điều lệ 08/10): bằng điểm (2 đội trở lên) → hiệu số toàn vòng bảng → bốc thăm
+      const base = bro
+        ? (x, y) => y.diff - x.diff || mi(x.t) - mi(y.t)
+        : (x, y) => y.diff - x.diff || y.f - x.f || (ev.sport === 'bongda' ? x.fp - y.fp : 0) || mi(x.t) - mi(y.t);
       list.sort((x, y) => y.pts - x.pts || base(x, y));
-      // Bóng rổ / Kéo co: 2 đội bằng điểm → xét đối đầu trực tiếp
+      // Kéo co: 2 đội bằng điểm → xét đối đầu trực tiếp
       if (useH2H) {
         for (let i = 0; i < list.length - 1; i++) {
           const blk = list.filter((r) => r.pts === list[i].pts);
@@ -183,7 +211,18 @@ export function createEngine(db) {
       }
       list.forEach((r, i) => { r.rank = i + 1; });
       const complete = gm.length > 0 && pending === 0;
-      return { rows: list, complete, pending, played: gm.length - pending, total: gm.length };
+      // Bóng rổ: các nhóm đội vẫn bằng điểm & hiệu số mà BTC chưa nhập thứ tự bốc thăm → cần bốc thăm
+      const drawNeeded = [];
+      if (bro && complete) {
+        for (let i = 0; i < list.length;) {
+          let j = i + 1;
+          while (j < list.length && list[j].pts === list[i].pts && list[j].diff === list[i].diff) j++;
+          const blk = list.slice(i, j);
+          if (blk.length > 1 && !blk.every((r) => manual.includes(r.t))) drawNeeded.push(blk.map((r) => r.t));
+          i = j;
+        }
+      }
+      return { rows: list, complete, pending, played: gm.length - pending, total: gm.length, drawNeeded };
     });
   }
 
@@ -214,7 +253,11 @@ export function createEngine(db) {
       if (ev.format === 'RR') {
         const st = standings(evId, 'A');
         if (!st.complete) return [];
-        st.rows.slice(0, 2 + (ev.bronze || 1)).forEach((r, i) => out.push({ rank: Math.min(i + 1, 3), side: { kind: 'team', t: r.t } }));
+        const nMed = 2 + (ev.bronze || 1);
+        const medalOf = (t) => { const i = st.rows.findIndex((r) => r.t === t); return i < nMed ? Math.min(i + 1, 3) : 0; };
+        // đội còn chờ bốc thăm mà huy chương phụ thuộc kết quả bốc thăm → chưa trao
+        const open = (t) => (st.drawNeeded || []).some((blk) => blk.includes(t) && new Set(blk.map(medalOf)).size > 1);
+        st.rows.slice(0, nMed).forEach((r, i) => { if (!open(r.t)) out.push({ rank: Math.min(i + 1, 3), side: { kind: 'team', t: r.t } }); });
         return out;
       }
       const F = finalMatch(ev);

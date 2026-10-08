@@ -159,7 +159,8 @@ export function standingsTable(E, evId, g, opt = {}) {
       <thead><tr><th>#</th><th class="l">Lớp</th><th title="Số trận">Tr</th><th title="Thắng">T</th>${foot ? '<th title="Hòa">H</th>' : ''}<th title="Thua">B</th>
       <th class="hide-sm" title="${esc(sp.forName)}">${esc(sp.forName === 'Hiệp thắng' ? 'HT' : sp.forName)}</th><th class="hide-sm" title="Bị ghi">${sp.id === 'keoco' ? 'HB' : sp.id === 'bongro' ? 'ĐT' : 'BB'}</th><th title="Hiệu số">HS</th><th title="Điểm">Đ</th>${opt.form ? '<th class="hide-sm">Gần đây</th>' : ''}</tr></thead>
       <tbody>${rows}</tbody></table></div>
-    <div class="qnote">${q.size ? `<span><i style="background:var(--green)"></i>Vào vòng trong${[...q].some((x) => x >= 3) ? ' (Nhất, Nhì)' : ''}</span>${[...q].some((x) => x >= 3) ? '<span><i style="background:var(--yellow)"></i>Hạng Ba vào tứ kết</span>' : ''}` : ''}<span>Điểm: Thắng ${P.w}${ev.sport === 'bongda' ? ` · Hòa ${P.d}` : ''} · Thua ${P.l}</span></div>
+    <div class="qnote">${q.size ? `<span><i style="background:var(--green)"></i>Vào vòng trong${[...q].some((x) => x >= 3) ? ' (Nhất, Nhì)' : ''}</span>${[...q].some((x) => x >= 3) ? '<span><i style="background:var(--yellow)"></i>Hạng Ba vào tứ kết</span>' : ''}` : ''}<span>Điểm: Thắng ${P.w}${ev.sport === 'bongda' ? ` · Hòa ${P.d}` : ''} · Thua ${P.l}${P.ff !== P.l ? ` · Bỏ cuộc ${P.ff}` : ''}</span>${ev.sport === 'bongro' ? '<span>Bằng điểm: xét hiệu số → bốc thăm</span>' : ''}</div>
+    ${(st.drawNeeded || []).map((g2) => `<div class="draw-note">⚠ <b>${g2.map(esc).join(', ')}</b> bằng điểm và hiệu số — Ban tổ chức bốc thăm phân thứ hạng.</div>`).join('')}
   </div>`;
 }
 

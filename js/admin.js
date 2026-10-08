@@ -2,7 +2,7 @@
 //  QUẢN TRỊ — dành cho Ban tổ chức / giáo viên phụ trách môn
 // ============================================================
 import { esc, todayISO, fmtDate, fmtDM, addDays, mondayOf, weekNo, weekdayLong, relTime, uid, clone, ls } from './util.js';
-import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS } from './engine.js';
+import { SPORTS, SPORT, LEVELS, levelOf, gradeOfClass, isDone, cmpMatch, cmpClass, FORFEIT, DEFAULT_POINTS, STATUS, POINTS_VER, NO_DRAW, forfeitSide } from './engine.js';
 import { SPORT_ICON, I } from './icons.js';
 import { sportTag, sportVars, capFirst, openModal, closeModal, toast, evCaption, levelName, shortName, ruleBody } from './ui.js';
 import { hasFirebase, DEMO } from './store.js';
@@ -149,7 +149,7 @@ function entryRow(E, m) {
   const [A, B] = E.sidesOf(m);
   const ready = (A.kind === 'team' || A.kind === 'ath') && (B.kind === 'team' || B.kind === 'ath');
   const st = m.st || 'sched';
-  const ko = m.stage !== 'G';
+  const ko = m.stage !== 'G' || !!NO_DRAW[ev.sport]; // vòng trong, hoặc môn không có hòa (Bóng rổ: hiệp phụ / ném phạt)
   const w = m.w || '';
   const drawKO = ko && isDone(m) && m.sa === m.sb;
   const nm = (r) => { const t = sideLabel(E, r); return r.kind === 'ath' && r.p ? `<b title="${esc(t)}">${esc(shortName(r.p))}</b><small>${esc(r.t)}</small>` : `<b>${esc(t)}</b>`; };
@@ -165,6 +165,7 @@ function entryRow(E, m) {
   </div>`;
 }
 function wireEntryRows(root, S) {
+  const E0 = S.engine;
   root.querySelectorAll('[data-row]').forEach((row) => {
     const id = row.dataset.row;
     const mark = () => { row.classList.add('dirty'); row.classList.remove('saved'); dirty.add(id); };
@@ -189,11 +190,14 @@ function wireEntryRows(root, S) {
       if (va !== '') { m.sa = Number(va); m.sb = Number(vb); } else { delete m.sa; delete m.sb; }
       if (m.st === 'done' && va === '') { toast('Trận "Kết thúc" cần có tỉ số', 'err'); return; }
       const wr = row.querySelector('input[type=radio]:checked');
-      if (m.stage !== 'G' && m.st === 'done' && m.sa === m.sb) {
-        if (!wr) { toast('Trận vòng trong hòa: chọn đội thắng (luân lưu / hiệp phụ)', 'err'); return; }
+      const noDraw = m.stage !== 'G' || !!NO_DRAW[(E0.events[m.ev] || {}).sport];
+      if (noDraw && m.st === 'done' && m.sa === m.sb) {
+        if (!wr) { toast(m.stage !== 'G' ? 'Trận vòng trong hòa: chọn đội thắng (luân lưu / hiệp phụ)' : 'Bóng rổ không có hòa: chọn đội thắng hiệp phụ / ném phạt', 'err'); return; }
         m.w = wr.value;
       } else delete m.w;
       if (m.st === 'sched') { delete m.sa; delete m.sb; delete m.w; }
+      // tỉ số / trạng thái đổi ở ô nhập nhanh → bỏ dấu xử thua cũ (nếu không, Bóng rổ vẫn cho đội đó 0 điểm)
+      if (m.st !== 'done' || m.sa !== cur.sa || m.sb !== cur.sb) { delete m.ff; if (/xử\s*thua/i.test(m.pen || '')) delete m.pen; }
       const btn = row.querySelector('[data-save]');
       btn.disabled = true;
       try {
@@ -296,8 +300,10 @@ export function openEditor(id, c, opt = {}) {
     if (va !== '') { out.sa = Number(va); out.sb = Number(vb); } else { delete out.sa; delete out.sb; }
     if (out.st === 'done' && va === '') return toast('Trận "Kết thúc" cần có tỉ số', 'err');
     const w = $('#e-w').value; if (w) out.w = w; else delete out.w;
-    if (out.stage !== 'G' && out.st === 'done' && out.sa === out.sb && !out.w) return toast('Vòng trong hòa: chọn người thắng', 'err');
+    if ((out.stage !== 'G' || NO_DRAW[ev.sport]) && out.st === 'done' && out.sa === out.sb && !out.w) return toast(out.stage !== 'G' ? 'Vòng trong hòa: chọn người thắng' : 'Bóng rổ không có hòa: chọn đội thắng hiệp phụ / ném phạt', 'err');
     const pen = $('#e-pen').value.trim(); if (pen) out.pen = pen; else delete out.pen;
+    const ffs = forfeitSide({ pen, sa: out.sa, sb: out.sb }); // bên bỏ cuộc (Bóng rổ: 0 điểm)
+    if (ffs && out.st === 'done') out.ff = ffs; else delete out.ff;
     if (foot) for (const f of ['ya', 'ra', 'yb', 'rb']) { const v = Number($('#e-' + f).value) || 0; if (v) out[f] = v; else delete out[f]; }
     out.date = $('#e-date').value; out.time = $('#e-time').value; out.end = $('#e-end').value;
     out.venue = $('#e-venue').value.trim();
@@ -396,7 +402,7 @@ function tabEvents(body, S) {
       : `<div class="field"><span>${rank === 1 ? 'Nhất (HCV)' : rank === 2 ? 'Nhì (HCB)' : 'Ba (HCĐ)'}</span><div style="display:flex;gap:6px"><input class="inp" style="flex:1" data-podp="${rank}" placeholder="Họ tên" value="${esc(cur.p || '')}"><input class="inp" style="width:84px" data-pod="${rank}" placeholder="Lớp" value="${esc(cur.t || '')}"></div></div>`;
   };
   body.innerHTML = `${sel}
-    ${team ? `<div class="card card-pad"><h3 style="font-weight:700;margin-bottom:6px">Thành phần các bảng</h3><p class="help" style="margin-top:0">Mỗi bảng một dòng, các lớp cách nhau bằng dấu phẩy. Thứ tự trong bảng chỉ dùng khi phải <b>bốc thăm</b> phân hạng (bằng mọi chỉ số) — kéo lớp xếp trên lên trước.</p>
+    ${team ? `<div class="card card-pad"><h3 style="font-weight:700;margin-bottom:6px">Thành phần các bảng</h3><p class="help" style="margin-top:0">Mỗi bảng một dòng, các lớp cách nhau bằng dấu phẩy. Khi các đội bằng mọi chỉ số và BTC đã <b>bốc thăm</b>, nhập kết quả vào ô «Thứ tự bốc thăm» (lớp xếp trên ghi trước) — không cần đổi thứ tự trong bảng.</p>
       <div class="formgrid">${groups.map((g) => { const st = E.standings(ev.id, g); return `<label class="field"><span>${ev.format === 'RR' ? 'Vòng tròn' : 'Bảng ' + g} — hiện tại: ${st.rows.map((r) => r.t).join(' › ')}</span><input class="inp" data-group="${g}" value="${esc(ev.groups[g].join(', '))}"></label>
         <label class="field"><span>Thứ tự bốc thăm khi bằng chỉ số (để trống nếu không cần)</span><input class="inp" data-order="${g}" value="${esc(((ev.manualOrder || {})[g] || []).join(', '))}" placeholder="VD: ${esc(ev.groups[g].slice(0, 2).join(', '))}"></label>`; }).join('')}</div></div>` : ''}
     <div class="card card-pad section"><h3 style="font-weight:700;margin-bottom:6px">Thứ hạng chung cuộc</h3>
@@ -590,9 +596,9 @@ function tabNews(body, S) {
 function tabSettings(body, S) {
   const pts = S.db.settings.points || {};
   const meta = S.db.meta || {};
-  const row = (sp, label) => { const p = { ...DEFAULT_POINTS[sp], ...(pts[sp] || {}) }; return `<div class="field"><span>${esc(label)}</span><div style="display:flex;gap:6px;align-items:center">Thắng <input class="inp" style="width:60px" data-pt="${sp}.w" value="${p.w}">${sp === 'bongda' ? ` Hòa <input class="inp" style="width:60px" data-pt="${sp}.d" value="${p.d}">` : ''} Thua <input class="inp" style="width:60px" data-pt="${sp}.l" value="${p.l}"></div></div>`; };
+  const row = (sp, label) => { const p = S.engine.points(sp); return `<div class="field"><span>${esc(label)}</span><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">Thắng <input class="inp" style="width:60px" data-pt="${sp}.w" value="${p.w}">${sp === 'bongda' ? ` Hòa <input class="inp" style="width:60px" data-pt="${sp}.d" value="${p.d}">` : ''} Thua <input class="inp" style="width:60px" data-pt="${sp}.l" value="${p.l}">${sp === 'bongro' ? ` Bỏ cuộc <input class="inp" style="width:60px" data-pt="${sp}.ff" value="${p.ff}">` : ''}</div></div>`; };
   body.innerHTML = `<div class="card card-pad"><h3 style="font-weight:700">Cách tính điểm vòng bảng</h3>
-      <p class="help">Mặc định theo điều lệ: Bóng đá 3–1–0; Bóng rổ thắng 1 – thua 0; Kéo co thắng 2 – thua 0. (Lưu ý: bảng xếp hạng giấy của môn Bóng rổ đang ghi thắng 2 – thua 1; thứ hạng không đổi khi các đội đá đủ số trận, chỉ khác con số điểm.)</p>
+      <p class="help">Mặc định theo điều lệ: Bóng đá thắng 3 – hòa 1 – thua 0; Bóng rổ thắng 2 – thua 1 – bỏ cuộc 0 (đội bị "Xử thua" trong hộp sửa trận); Kéo co thắng 2 – thua 0.</p>
       <div class="formgrid">${row('bongda', 'Bóng đá')}${row('bongro', 'Bóng rổ')}${row('keoco', 'Kéo co')}</div>
       <div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="btn primary" id="save-pts">${I.check} Lưu cách tính điểm</button></div></div>
     <div class="card card-pad section"><h3 style="font-weight:700">Thông tin giải</h3>
@@ -605,7 +611,7 @@ function tabSettings(body, S) {
   body.querySelector('#save-pts').addEventListener('click', async () => {
     const points = {};
     body.querySelectorAll('[data-pt]').forEach((i) => { const [sp, k] = i.dataset.pt.split('.'); (points[sp] ||= {})[k] = Number(i.value) || 0; });
-    try { await ctx.store.saveConfig({ settings: { ...(ctx.store.getState().db.settings || {}), points } }, 'Đổi cách tính điểm'); toast('Đã lưu', 'ok'); ctx.render(); } catch (e) { toast(e.message, 'err'); }
+    try { await ctx.store.saveConfig({ settings: { ...(ctx.store.getState().db.settings || {}), points, pointsVer: POINTS_VER } }, 'Đổi cách tính điểm'); toast('Đã lưu', 'ok'); ctx.render(); } catch (e) { toast(e.message, 'err'); }
   });
   body.querySelector('#save-meta').addEventListener('click', async () => {
     const m = { ...(ctx.store.getState().db.meta || {}), start: body.querySelector('#m-start').value, end: body.querySelector('#m-end').value, slogan: body.querySelector('#m-slogan').value.trim() };
