@@ -33,7 +33,14 @@ function patchBongroRules(seed) {
   }
 }
 
+// Sửa ngày giờ trận bị ghi sai trong Excel: '<mã trận>': [ngày, giờ, giờ kết thúc?]
+const DATE_FIX = {
+  // Bóng đá K1 Bán kết 1: file ghi 05/10 (trước cả tứ kết 19–20/10); các môn khối 1 đá BK1 thứ Hai 26/10
+  'bongda-k1-SF1': ['2026-10-26', '15:00'],
+};
+
 module.exports = function applyFixes(seed) {
+  for (const [id, [date, time, end]] of Object.entries(DATE_FIX)) { const m = seed.matches[id]; if (!m) continue; m.date = date; if (time) m.time = time; if (end) m.end = end; }
   for (const m of Object.values(seed.matches)) if (FIX_EVENTS.includes(m.ev)) m.fix = FIX_AT;
   patchBongroRules(seed);
   return seed;

@@ -125,7 +125,9 @@ function tabEntry(body, S) {
   // quá hạn chưa nhập
   const overdue = Object.values(E.matches).filter((m) => { const ev = E.events[m.ev]; return ev && canSport(ev.sport) && m.date < today && !isDone(m) && !['post', 'cancel'].includes(m.st) && E.status(m) !== 'wo' && E.sidesOf(m).every((r) => r.kind === 'team' || r.kind === 'ath'); });
   const rows = list.map((m) => entryRow(E, m)).join('');
+  const lateKO = scheduleIssues(E);
   body.innerHTML = `
+    ${lateKO.length ? `<div class="card card-pad" style="margin-bottom:12px;border-color:#f3dc8a;background:#fffaf0"><b style="color:#7a5a00">⚠ ${lateKO.length} trận vòng trong có ngày thi đấu sớm hơn trận dẫn vào — kiểm tra lại lịch.</b> <button class="btn sm" id="show-late" style="margin-left:6px">Xem danh sách</button></div>` : ''}
     ${overdue.length ? `<div class="card card-pad" style="margin-bottom:12px;border-color:#f7c9d1;background:#fff5f6"><b style="color:#8c1024">${overdue.length} trận đã qua ngày nhưng chưa có kết quả.</b> <button class="btn sm" id="show-overdue" style="margin-left:6px">Xem danh sách</button></div>` : ''}
     <div class="daybar"><button class="nav" data-wk="-7">${I.left}</button><div class="days">${days.map((d) => `<button class="dbtn ${d === day ? 'on' : ''} ${d === today ? 'today' : ''}" data-day="${d}"><span class="w">${esc(fmtDate(d).split(',')[0])}</span><span class="d">${esc(fmtDM(d))}</span></button>`).join('')}</div><button class="nav" data-wk="7">${I.right}</button></div>
     <div class="filters">
@@ -140,9 +142,35 @@ function tabEntry(body, S) {
   body.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => ctx.setQuery({ m: b.dataset.m })));
   body.querySelector('#fk').addEventListener('change', (e) => ctx.setQuery({ k: e.target.value }));
   body.querySelector('#ftodo').addEventListener('change', (e) => ctx.setQuery({ todo: e.target.checked ? '1' : null }));
+  const lt = body.querySelector('#show-late');
+  if (lt) lt.addEventListener('click', () => {
+    const html = `<div class="modal-h"><h3>Trận vòng trong xếp lịch sớm hơn trận dẫn vào (${lateKO.length})</h3><button class="btn ghost sm" data-close>${I.x}</button></div>
+      <div class="modal-b" style="max-height:60vh;overflow:auto;padding:0"><div class="mlist">${lateKO.map((x) => `<div class="mrow" data-open="${esc(x.m.id)}"><div class="when"><b>${esc(fmtDate(x.m.date))}</b>${esc(x.m.time || '')}</div><div class="mid"><div class="meta">${sportTag(E.events[x.m.ev].sport)}<span class="stg">${esc(evCaption(E, x.m))}</span></div><span class="small muted">${esc(x.why)}</span></div><div class="right"><span class="btn sm">${I.edit} Sửa lịch</span></div></div>`).join('')}</div></div>`;
+    const md = openModal(html, { wide: true });
+    md.querySelectorAll('[data-open]').forEach((r) => r.addEventListener('click', () => { closeModal(); openEditor(r.dataset.open, ctx); }));
+  });
   const ov = body.querySelector('#show-overdue');
   if (ov) ov.addEventListener('click', () => overdueModal(E, overdue));
   wireEntryRows(body, S);
+}
+// Trận vòng trong có ngày sớm hơn trận dẫn vào / trước khi vòng bảng kết thúc (lỗi nhập lịch)
+function scheduleIssues(E) {
+  const out = [];
+  const lastG = {};
+  Object.values(E.matches).forEach((m) => { if (m.stage === 'G' && m.date && (!lastG[m.ev] || m.date > lastG[m.ev])) lastG[m.ev] = m.date; });
+  for (const m of Object.values(E.matches)) {
+    const ev = E.events[m.ev];
+    if (!ev || !canSport(ev.sport) || !m.date || m.stage === 'G' || isDone(m) || ['cancel', 'post'].includes(m.st)) continue;
+    let why = '';
+    for (const k of ['a', 'b']) {
+      const r = m[k] && m[k].ref;
+      if (!r || !/^[WLT]:/.test(r)) continue;
+      for (const id of r.slice(2).split(',')) { const f = E.matches[id]; if (f && f.date && f.date > m.date) why = `Trận dẫn vào (${capFirst(E.stageLabel(f))}) đấu ${fmtDM(f.date)}`; }
+    }
+    if (!why && ev.kind === 'team' && lastG[m.ev] && m.date < lastG[m.ev]) why = `Vòng bảng còn trận ngày ${fmtDM(lastG[m.ev])}`;
+    if (why) out.push({ m, why });
+  }
+  return out.sort((a, b) => cmpMatch(a.m, b.m));
 }
 function entryRow(E, m) {
   const ev = E.events[m.ev];
