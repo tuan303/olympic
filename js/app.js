@@ -74,6 +74,7 @@ function doRender() {
   if (!S.ready) { app.innerHTML = `<div class="wrap page"><div class="skeleton" style="height:260px"></div><div class="skeleton" style="height:160px;margin-top:16px"></div></div>`; return; }
   const views = { '': viewHome, lich: viewSchedule, 'ket-qua': viewResults, 'tong-sap': viewMedals, lop: viewClass, 'dieu-le': viewRules, 'quan-tri': viewAdmin };
   const v = views[route.name] || viewHome;
+  if (route.name !== 'quan-tri' && adminMod && adminMod.resetLogCache) adminMod.resetLogCache(); // nhật ký đọc lại khi quay về
   try { v(S); } catch (e) { console.error(e); app.innerHTML = `<div class="wrap page"><div class="card empty-box">${I.info}<b>Có lỗi khi hiển thị trang</b>${esc(e.message)}</div></div>`; }
 }
 

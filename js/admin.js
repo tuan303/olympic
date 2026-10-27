@@ -96,7 +96,8 @@ function download(name, text, type = 'text/csv;charset=utf-8') {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
-const csvCell = (v) => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+// ô bắt đầu bằng = + - @ (công thức Excel; trừ số âm) → thêm ' phía trước để Excel hiểu là chữ
+const csvCell = (v) => { let s = String(v ?? ''); if (/^[=+@\t\r]/.test(s) || (/^-/.test(s) && !/^-\d+(\.\d+)?$/.test(s))) s = "'" + s; return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 const csv = (rows) => rows.map((r) => r.map(csvCell).join(',')).join('\n');
 function venuesOf(E) { return [...new Set(Object.values(E.matches).map((m) => m.venue).filter(Boolean))].sort(); }
 
@@ -744,37 +745,58 @@ function tabData(body, S) {
 // ============================================================
 // Nhật ký thao tác — chỉ quản trị cao nhất xem được (luật Firestore cũng chặn đọc với người khác)
 let logCache = null;
+// app.js gọi khi rời trang Quản trị → quay lại tab Nhật ký sẽ đọc lại bản mới
+export function resetLogCache() { logCache = null; }
 async function tabLogs(body) {
   const LT = ctx.store.LOG_TYPES;
   const q = ctx.route.q;
   const ft = q.get('lt') || '', fs = q.get('lm') || '', fu = q.get('lu') || '', fd = q.get('ld') || '', fq = (q.get('lq') || '').toLowerCase();
+  const local = ctx.store.getState().mode === 'local';
   if (!logCache) {
     body.innerHTML = `<div class="skeleton" style="height:200px"></div>`;
-    try { logCache = { list: await ctx.store.listLogs(300), more: true }; logCache.more = logCache.list.length >= 300; }
+    try { const l = await ctx.store.listLogs(300); logCache = { list: l, last: l[l.length - 1] || null, more: l.length >= 300 }; }
     catch (e) { body.innerHTML = `<div class="card empty-box">${I.info}<b>Không đọc được nhật ký</b>${esc(e.message)}</div>`; return; }
   }
-  const all = logCache.list;
-  const typeOf = (l) => l.type || (/Xóa trận/.test(l.action || '') ? 'delete' : /Thêm trận/.test(l.action || '') ? 'add' : l.after ? 'result' : /điều lệ/i.test(l.action || '') ? 'rules' : /thông báo/i.test(l.action || '') ? 'news' : /quyền/i.test(l.action || '') ? 'admin' : /sao lưu|lịch gốc/i.test(l.action || '') ? 'data' : /Danh sách VĐV/.test(l.action || '') ? 'roster' : 'config');
-  const sportOf = (l) => l.sport || ((l.ev || l.id || '').split('-')[0]);
-  const users = [...new Set(all.map((l) => l.by).filter(Boolean))].sort();
+  // Bản ghi do người dùng ghi lên (luật chỉ kiểm tra email + giờ máy chủ) → đọc phòng thủ, không tin kiểu dữ liệu
+  const str = (x) => { try { return typeof x === 'string' ? x : x == null ? '' : typeof x === 'object' ? JSON.stringify(x) : String(x); } catch (e) { return '?'; } };
+  const own = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+  // giờ thao tác: giờ máy chủ (ts) nếu có, không thì giờ máy người ghi (bản ghi cũ / xem thử)
+  const when = (l) => { const t = Number.isFinite(l.srvAt) ? l.srvAt : typeof l.at === 'number' ? l.at : NaN; return Number.isFinite(t) && t > 0 && t < 8.64e15 ? t : null; };
+  const vn = (t) => new Date(t + 7 * 3600e3); // giờ Việt Nam qua getUTC*
+  const p2 = (n) => String(n).padStart(2, '0');
+  const dt = (t) => { if (t == null) return '—'; const d = vn(t); return `${p2(d.getUTCDate())}/${p2(d.getUTCMonth() + 1)} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())}`; };
+  const dayOf = (t) => (t == null ? '' : vn(t).toISOString().slice(0, 10));
+  const all = logCache.list.slice().sort((a, b) => (when(b) || 0) - (when(a) || 0));
   // bản ghi cũ (trước khi nâng cấp) chưa có danh sách thay đổi → dựng từ ảnh chụp trước/sau
-  const changesOf = (l) => {
-    if (l.changes) return l.changes;
-    const b = l.before || {}, a = l.after || {}, out = [];
-    const sc = (x) => (x && x.sa != null ? `${x.sa}–${x.sb}` : '—');
-    if (l.after) { if (sc(b) !== sc(a)) out.push({ f: 'Tỉ số', from: sc(b), to: sc(a) }); for (const [k, f] of [['st', 'Trạng thái'], ['date', 'Ngày'], ['time', 'Giờ'], ['venue', 'Sân']]) if ((b[k] || '') !== (a[k] || '')) out.push({ f, from: b[k] || '—', to: a[k] || '—' }); }
+  const changesOf = (l) => { try { return changesOf0(l); } catch (e) { return []; } };
+  const changesOf0 = (l) => {
+    if (Array.isArray(l.changes)) return l.changes.filter((c) => c && typeof c === 'object').map((c) => ({ f: str(c.f), from: str(c.from), to: str(c.to) }));
+    const b = (l.before && typeof l.before === 'object' && l.before) || {}, a = (l.after && typeof l.after === 'object' && l.after) || {}, out = [];
+    const sc = (x) => (x && x.sa != null ? `${str(x.sa)}–${str(x.sb)}` : '—');
+    const v = (k, x) => str(k === 'st' && own(STATUS, x) ? STATUS[x].name : x) || '—';
+    if (l.after) { if (sc(b) !== sc(a)) out.push({ f: 'Tỉ số', from: sc(b), to: sc(a) }); for (const [k, f] of [['st', 'Trạng thái'], ['date', 'Ngày'], ['time', 'Giờ'], ['venue', 'Sân']]) if (str(b[k]) !== str(a[k])) out.push({ f, from: v(k, b[k]), to: v(k, a[k]) }); }
     return out;
   };
+  const legacyTypes = (l) => { const f = changesOf(l).map((c) => c.f), t = []; if (f.includes('Tỉ số') || f.includes('Trạng thái')) t.push('result'); if (f.includes('Ngày') || f.includes('Giờ') || f.includes('Sân')) t.push('schedule'); return t; };
+  const typeOf = (l) => { try { return typeOf0(l); } catch (e) { return 'config'; } };
+  const typeOf0 = (l) => {
+    if (own(LT, l.type)) return l.type;
+    const a = str(l.action);
+    return /Xóa trận/.test(a) ? 'delete' : /Thêm trận/.test(a) ? 'add' : l.after ? (legacyTypes(l)[0] || 'result') : /Sửa nội dung|bảng đấu/i.test(a) ? 'event' : /điều lệ/i.test(a) ? 'rules' : /thông báo/i.test(a) ? 'news' : /quyền/i.test(a) ? 'admin' : /sao lưu|lịch gốc/i.test(a) ? 'data' : /Danh sách VĐV/.test(a) ? 'roster' : 'config';
+  };
+  // chỉ các loại đã biết mới vào thuộc tính class (chặn chèn mã qua bản ghi tự ghi)
+  const typesOf = (l) => (Array.isArray(l.types) ? l.types.filter((x) => own(LT, x)) : l.after && l.before ? legacyTypes(l) : []);
+  const sportOf = (l) => str(l.sport) || str(l.ev || l.id).split('-')[0];
+  const users = [...new Set(all.map((l) => str(l.by)).filter(Boolean))].sort();
   const list = all.filter((l) => {
     const t = typeOf(l);
-    if (ft && !(t === ft || (l.types || []).includes(ft))) return false;
+    if (ft && !(t === ft || typesOf(l).includes(ft))) return false;
     if (fs && sportOf(l) !== fs) return false;
-    if (fu && l.by !== fu) return false;
-    if (fd && new Date(l.at).toISOString().slice(0, 10) !== fd && new Date(l.at + 7 * 3600e3).toISOString().slice(0, 10) !== fd) return false;
-    if (fq && !JSON.stringify([l.label, l.action, l.by, l.name, l.mid, l.id, changesOf(l)]).toLowerCase().includes(fq)) return false;
+    if (fu && str(l.by) !== fu) return false;
+    if (fd && dayOf(when(l)) !== fd) return false;
+    if (fq && ![l.label, l.action, l.by, l.name, l.role, l.mid, l.id, l.ev, ...changesOf(l).flatMap((c) => [c.f, c.from, c.to])].map(str).filter(Boolean).join('\n').toLowerCase().includes(fq)) return false;
     return true;
   });
-  const dt = (ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, '0'); return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
   const chHtml = (c) => `<li><b>${esc(c.f)}:</b> ${c.from && c.from !== '—' ? `<del>${esc(c.from)}</del>${c.to ? ' → ' : ''}` : ''}${c.to || !c.from ? `<ins>${esc(c.to || '—')}</ins>` : ''}</li>`;
   const counts = {}; all.forEach((l) => { const t = typeOf(l); counts[t] = (counts[t] || 0) + 1; });
   body.innerHTML = `
@@ -786,15 +808,16 @@ async function tabLogs(body) {
       <div class="search"><span>${I.search}</span><input class="inp" id="lq" value="${esc(q.get('lq') || '')}" placeholder="Tìm lớp, trận, nội dung…" style="width:200px"></div>
       <button class="btn sm" id="l-csv">${I.download} Xuất CSV</button><button class="btn sm" id="l-reload">${I.refresh} Tải lại</button>
     </div>
-    <p class="help" style="margin-top:-4px">Ghi lại mọi thao tác nhập / sửa kết quả, đổi lịch, thêm / xóa trận, bảng đấu, danh sách VĐV, thông báo, điều lệ, cài đặt, phân quyền. Nhật ký không sửa, không xóa được. Đang hiện ${list.length}/${all.length} bản ghi gần nhất.</p>
-    <div class="card log-list">${list.map((l) => { const t = typeOf(l); const ch = changesOf(l); return `<div class="lg">
-      <div class="lg-when"><b>${esc(dt(l.at))}</b><span>${esc(relTime(l.at))}</span></div>
-      <div class="lg-main"><div class="lg-top"><span class="lt lt-${t}">${esc(LT[t] || t)}</span>${(l.types || []).filter((x) => x !== t).map((x) => `<span class="lt lt-${x}">${esc(LT[x] || x)}</span>`).join('')}<b>${esc(l.action || '')}</b>${sportOf(l) && SPORT[sportOf(l)] ? sportTag(sportOf(l)) : ''}</div>
-        ${l.label || l.id || l.ev ? `<div class="lg-label">${esc(l.label || l.id || l.ev)}</div>` : ''}
-        ${ch.length ? `<ul class="lg-ch">${ch.map(chHtml).join('')}</ul>` : ''}</div>
-      <div class="lg-who"><b>${esc(l.name || l.by || '')}</b>${l.name ? `<span>${esc(l.by)}</span>` : ''}${l.role ? `<span>${esc(l.role)}</span>` : ''}</div>
-    </div>`; }).join('') || '<div class="empty-box small">Không có bản ghi phù hợp.</div>'}</div>
+    <p class="help" style="margin-top:-4px">Ghi lại mọi thao tác nhập / sửa kết quả, đổi lịch, thêm / xóa trận, bảng đấu, danh sách VĐV, thông báo, điều lệ, cài đặt, phân quyền. Nhật ký không sửa, không xóa được; giờ theo máy chủ. Đang hiện ${list.length}/${all.length} bản ghi gần nhất.</p>
+    <div class="card log-list">${list.map((l) => { try { return rowHtml(l); } catch (e) { return ''; } }).join('') || '<div class="empty-box small">Không có bản ghi phù hợp.</div>'}</div>
     ${logCache.more ? `<div style="display:flex;justify-content:center;margin-top:12px"><button class="btn" id="l-more">Tải thêm bản ghi cũ hơn</button></div>` : ''}`;
+  function rowHtml(l) { const t = typeOf(l), at = when(l), ch = changesOf(l), sp = sportOf(l), lbl = str(l.label || l.id || l.ev); return `<div class="lg">
+      <div class="lg-when"><b>${esc(dt(at))}</b><span>${esc(at == null ? '' : relTime(at))}</span></div>
+      <div class="lg-main"><div class="lg-top"><span class="lt lt-${t}">${esc(LT[t])}</span>${typesOf(l).filter((x) => x !== t).map((x) => `<span class="lt lt-${x}">${esc(LT[x])}</span>`).join('')}<b>${esc(str(l.action))}</b>${own(SPORT, sp) ? sportTag(sp) : ''}</div>
+        ${lbl ? `<div class="lg-label">${esc(lbl)}</div>` : ''}
+        ${ch.length ? `<ul class="lg-ch">${ch.map(chHtml).join('')}</ul>` : ''}</div>
+      <div class="lg-who"><b>${esc(str(l.by) || '—')}</b>${l.name ? `<span>${esc(str(l.name))}</span>` : ''}${l.role ? `<span>${esc(str(l.role))}</span>` : ''}</div>
+    </div>`; }
   body.querySelectorAll('[data-lf]').forEach((el) => el.addEventListener('change', () => ctx.setQuery({ [el.dataset.lf]: el.value })));
   const lq = body.querySelector('#lq');
   lq.addEventListener('keydown', (e) => { if (e.key === 'Enter') ctx.setQuery({ lq: lq.value.trim() }); });
@@ -803,12 +826,14 @@ async function tabLogs(body) {
   const more = body.querySelector('#l-more');
   if (more) more.addEventListener('click', async () => {
     more.disabled = true;
-    try { const older = await ctx.store.listLogs(300, all[all.length - 1].at); logCache.list = all.concat(older); logCache.more = older.length >= 300; ctx.render(); }
-    catch (e) { toast(e.message, 'err'); more.disabled = false; }
+    try {
+      const older = await ctx.store.listLogs(300, logCache.last, local ? logCache.list.length : 0);
+      logCache.list = logCache.list.concat(older); logCache.last = older[older.length - 1] || logCache.last; logCache.more = older.length >= 300; ctx.render();
+    } catch (e) { toast(e.message, 'err'); more.disabled = false; }
   });
   body.querySelector('#l-csv').addEventListener('click', () => {
-    const rows = [['Thời gian', 'Người thực hiện', 'Email', 'Vai trò', 'Loại', 'Thao tác', 'Môn', 'Đối tượng', 'Thay đổi']];
-    list.forEach((l) => rows.push([new Date(l.at).toLocaleString('vi-VN'), l.name || '', l.by || '', l.role || '', LT[typeOf(l)] || '', l.action || '', (SPORT[sportOf(l)] || {}).name || '', l.label || l.id || l.ev || '', changesOf(l).map((c) => `${c.f}: ${c.from || ''} → ${c.to || ''}`).join(' | ')]));
+    const rows = [['Thời gian (giờ VN)', 'Email', 'Tên', 'Vai trò', 'Loại', 'Thao tác', 'Môn', 'Đối tượng', 'Thay đổi']];
+    list.forEach((l) => { const at = when(l); rows.push([at == null ? '' : `${dayOf(at)} ${dt(at).slice(6)}`, str(l.by), str(l.name), str(l.role), LT[typeOf(l)] || '', str(l.action), own(SPORT, sportOf(l)) ? SPORT[sportOf(l)].name : '', str(l.label || l.id || l.ev), changesOf(l).map((c) => `${c.f}: ${c.from || ''} → ${c.to || ''}`).join(' | ')]); });
     download(`olympic-nhat-ky-${todayISO()}.csv`, csv(rows));
   });
 }

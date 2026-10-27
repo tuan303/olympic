@@ -65,8 +65,8 @@ function compose(parts) {
       if (removed.has(k)) continue; // trận BTC đã bỏ khỏi sơ đồ (vd nhánh thừa) — bỏ qua bản lưu cũ
       const base = s.matches[k];
       // Trận có "fix" = BTC cấp lại sơ đồ sau khi đã sửa trên máy chủ → cặp đấu theo lịch gốc, giữ tỉ số đã nhập
-      if (base && base.fix && (!m0 || !m0.upd || m0.upd < base.fix)) { if (m0) db.matches[k] = { ...m0, ...pick(base, FIX_FIELDS) }; continue; }
       if (m0 === null) { delete db.matches[k]; continue; }
+      if (base && base.fix && (!m0.upd || m0.upd < base.fix)) { db.matches[k] = { ...m0, ...pick(base, FIX_FIELDS) }; continue; }
       db.matches[k] = VENUE_RENAME[m0.venue] ? { ...m0, venue: VENUE_RENAME[m0.venue] } : m0;
     }
   }
@@ -175,11 +175,9 @@ export const LOG_TYPES = {
   roster: 'Danh sách VĐV', news: 'Thông báo', rules: 'Điều lệ', config: 'Cài đặt', admin: 'Quản trị viên', data: 'Dữ liệu',
 };
 const roleTxt = () => { const r = state.role || {}; return r.super ? 'Quản trị cao nhất' : r.all ? 'Toàn giải' : 'Phụ trách: ' + Object.keys(r.sports || {}).filter((k) => r.sports[k]).join(', '); };
-async function writeLog(entry) {
-  const e = { by: who(), name: (state.user && state.user.name) || '', role: roleTxt(), ...entry, at: Date.now() };
-  if (state.mode === 'local') { const L = ls.get(LOG_KEY, []); L.unshift(JSON.parse(JSON.stringify(e))); ls.set(LOG_KEY, L.slice(0, 1000)); return true; }
-  return fb ? fb.addLog(e) : false;
-}
+// Có Firebase: bản ghi đi CÙNG lô với dữ liệu (fb.setOverride/setConfig/... nhận tham số log); xem thử: lưu trên máy này
+const logEntry = (entry) => ({ by: who(), name: (state.user && state.user.name) || '', role: roleTxt(), ...entry, at: Date.now() });
+function localLog(entry) { const L = ls.get(LOG_KEY, []); L.unshift(JSON.parse(JSON.stringify(logEntry(entry)))); ls.set(LOG_KEY, L.slice(0, 1000)); }
 const scoreTxt = (m) => (m && Number.isFinite(m.sa) && Number.isFinite(m.sb) ? `${m.sa}–${m.sb}` : '—');
 const sideRaw = (x) => (!x ? '' : x.ref ? x.ref : [x.p, x.t].filter(Boolean).join(' · ') + (x.bye ? ' (không thi đấu)' : ''));
 function sideTxt(m, k) {
@@ -231,16 +229,16 @@ export async function saveMatch(match, action = 'Sửa trận') {
   const before = state.db.matches[match.id] || null;
   const m = strip({ ...match, upd: Date.now(), by: who() });
   const d = docOf(ev);
-  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).m ||= {})[m.id] = m; }); await logMatch(before, m, action, ev); return m; }
+  const entry = matchEntry(before, m, action, ev);
+  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).m ||= {})[m.id] = m; }); localLog(entry); return m; }
   requireFb();
-  await fb.setOverride(d, 'm', m.id, m);
-  await logMatch(before, m, action, ev);
+  await fb.setOverride(d, 'm', m.id, m, logEntry(entry));
   return m;
 }
-async function logMatch(before, m, action, ev) {
+function matchEntry(before, m, action, ev) {
   const { changes, types } = diffMatch(before, m);
   const type = !before ? 'add' : types.includes('result') ? 'result' : types.includes('schedule') ? 'schedule' : 'result';
-  return writeLog({ type, types: !before ? ['add'] : types, action: changes.length || !before ? action : action + ' (lưu lại, không đổi)', ...evInfo(ev), mid: m.id, label: matchLabel(m), changes, before: brief(before), after: brief(m) });
+  return { type, types: !before ? ['add'] : types, action: changes.length || !before ? action : action + ' (lưu lại, không đổi)', ...evInfo(ev), mid: m.id, label: matchLabel(m), changes, before: brief(before), after: brief(m) };
 }
 export async function deleteMatch(id) {
   const m = state.db.matches[id];
@@ -249,10 +247,9 @@ export async function deleteMatch(id) {
   if (!canEdit(ev.sport)) throw new Error('Bạn không có quyền sửa môn này.');
   const d = docOf(ev);
   const entry = { type: 'delete', types: ['delete'], action: 'Xóa trận', ...evInfo(ev), mid: id, label: matchLabel(m), changes: [{ f: 'Trận', from: `${scoreTxt(m)} · ${m.date || ''} ${m.time || ''} · ${m.venue || ''}`, to: 'đã xóa' }], before: brief(m) };
-  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).m ||= {})[id] = null; }); await writeLog(entry); return; }
+  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).m ||= {})[id] = null; }); localLog(entry); return; }
   requireFb();
-  await fb.setOverride(d, 'm', id, null);
-  await writeLog(entry);
+  await fb.setOverride(d, 'm', id, null, logEntry(entry));
 }
 export async function saveEvent(ev, action = 'Sửa bảng đấu / thứ hạng') {
   if (!canEdit(ev.sport)) throw new Error('Bạn không có quyền sửa môn này.');
@@ -264,10 +261,9 @@ export async function saveEvent(ev, action = 'Sửa bảng đấu / thứ hạng
   for (const [f, fn] of [['Thành phần bảng', grp], ['Thứ tự bốc thăm', ord], ['Thứ hạng xác nhận tay', pod], ['Ghi chú nội dung', (e) => e.note || '']]) { const a = fn(old), b = fn(ev); if (a !== b) changes.push({ f, from: a || '—', to: b || '—' }); }
   const entry = { type: 'event', types: ['event'], action, ...evInfo(ev), label: ev.name, changes };
   const d = docOf(ev);
-  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).e ||= {})[ev.id] = ev; }); await writeLog(entry); return; }
+  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).e ||= {})[ev.id] = ev; }); localLog(entry); return; }
   requireFb();
-  await fb.setOverride(d, 'e', ev.id, ev);
-  await writeLog(entry);
+  await fb.setOverride(d, 'e', ev.id, ev, logEntry(entry));
 }
 // Danh sách VĐV của một lớp trong một nội dung đồng đội; list rỗng = xóa
 export async function saveRoster(evId, cls, list) {
@@ -277,17 +273,22 @@ export async function saveRoster(evId, cls, list) {
   const key = evId + '|' + cls;
   const clean = (list || []).map((x) => { const o = { n: String(x.n || '').trim() }; for (const f of ['no', 'g', 'note']) if (x[f]) o[f] = String(x[f]).trim(); return o; }).filter((x) => x.n);
   const val = clean.length ? { list: clean, upd: Date.now(), by: who() } : null;
-  const oldNames = state.engine.rosterOf(evId, cls).map((x) => x.n), newNames = clean.map((x) => x.n);
+  const old = state.engine.rosterOf(evId, cls), oldNames = old.map((x) => x.n), newNames = clean.map((x) => x.n);
   const plus = newNames.filter((x) => !oldNames.includes(x)), minus = oldNames.filter((x) => !newNames.includes(x));
-  const changes = [{ f: 'Số VĐV', from: String(oldNames.length), to: String(newNames.length) }];
-  if (plus.length) changes.push({ f: 'Thêm', from: '', to: plus.slice(0, 15).join(', ') + (plus.length > 15 ? ` … (+${plus.length - 15})` : '') });
-  if (minus.length) changes.push({ f: 'Bỏ', from: minus.slice(0, 15).join(', ') + (minus.length > 15 ? ` … (+${minus.length - 15})` : ''), to: '' });
+  const upTo = (l) => l.slice(0, 15).join('; ') + (l.length > 15 ? ` … (+${l.length - 15})` : '');
+  const info = (x) => [x.no ? 'số ' + x.no : '', x.g, x.note].filter(Boolean).join(', ');
+  const edited = clean.map((x) => { const o = old.find((y) => y.n === x.n); return o && info(o) !== info(x) ? `${x.n}: ${info(o) || '—'} → ${info(x) || '—'}` : null; }).filter(Boolean);
+  const changes = [];
+  if (oldNames.length !== newNames.length) changes.push({ f: 'Số VĐV', from: String(oldNames.length), to: String(newNames.length) });
+  if (plus.length) changes.push({ f: 'Thêm', from: '', to: upTo(plus) });
+  if (minus.length) changes.push({ f: 'Bỏ', from: upTo(minus), to: '' });
+  if (edited.length) changes.push({ f: 'Sửa số áo / giới tính / ghi chú', from: '', to: upTo(edited) });
+  if (!changes.length) changes.push({ f: 'Thứ tự', from: '', to: oldNames.join(', ') === newNames.join(', ') ? 'lưu lại, không đổi' : 'đổi thứ tự danh sách' });
   const entry = { type: 'roster', types: ['roster'], action: val ? 'Sửa danh sách VĐV' : 'Xóa danh sách VĐV', ...evInfo(ev), label: `${ev.name} · Lớp ${cls}`, changes };
   const d = docOf(ev);
-  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).r ||= {})[key] = val; }); await writeLog(entry); return; }
+  if (state.mode === 'local') { localWrite((o) => { ((o[d] ||= {}).r ||= {})[key] = val; }); localLog(entry); return; }
   requireFb();
-  await fb.setOverride(d, 'r', key, val);
-  await writeLog(entry);
+  await fb.setOverride(d, 'r', key, val, logEntry(entry));
 }
 // Sửa điều lệ một môn/cấp ('bongda-THCS') hoặc quy định chung ('general:THCS'); value null = khôi phục bản gốc
 export async function saveRule(key, value) {
@@ -316,20 +317,24 @@ export async function saveConfig(patch, action = 'Sửa cấu hình', meta = {})
     const was = state.db.news || [], now = patch.news;
     const ids = new Set(was.map((n) => n.id)), ids2 = new Set(now.map((n) => n.id));
     now.filter((n) => !ids.has(n.id)).forEach((n) => changes.push({ f: 'Đăng', from: '', to: n.title }));
-    was.filter((n) => !ids2.has(n.id)).forEach((n) => changes.push({ f: 'Xóa', from: n.title, to: '' }));
+    was.filter((n) => !ids2.has(n.id)).forEach((n) => changes.push({ f: 'Xóa', from: n.title + (n.body ? ' — ' + String(n.body).slice(0, 300) : ''), to: '' }));
     now.forEach((n) => { const o = was.find((x) => x.id === n.id); if (o && !!o.pinned !== !!n.pinned) changes.push({ f: n.pinned ? 'Ghim' : 'Bỏ ghim', from: '', to: n.title }); });
   }
   if (patch.settings && patch.settings.points) {
-    const P = (pts, sp) => { const p = (pts || {})[sp] || {}; return Object.entries(p).map(([k, v]) => `${{ w: 'Thắng', d: 'Hòa', l: 'Thua', ff: 'Bỏ cuộc' }[k] || k} ${v}`).join(', '); };
-    for (const sp of Object.keys(patch.settings.points)) { const a = P((state.db.settings || {}).points, sp), b = P(patch.settings.points, sp); if (a !== b) changes.push({ f: 'Điểm ' + ((SPORT[sp] || {}).name || sp), from: a || 'mặc định', to: b }); }
+    const L = { w: 'Thắng', d: 'Hòa', l: 'Thua', ff: 'Bỏ cuộc' };
+    const fmt = (p, keys) => keys.map((k) => `${L[k] || k} ${p[k] ?? '—'}`).join(', ');
+    for (const [sp, nv] of Object.entries(patch.settings.points)) {
+      const keys = Object.keys(nv || {}), cur = state.engine ? state.engine.points(sp) : {};
+      const a = fmt(cur, keys), b = fmt(nv || {}, keys);
+      if (a !== b) changes.push({ f: 'Điểm ' + ((SPORT[sp] || {}).name || sp), from: a, to: b });
+    }
   }
   if (patch.meta) for (const [k, f] of [['start', 'Ngày khai mạc'], ['end', 'Ngày kết thúc'], ['slogan', 'Khẩu hiệu']]) { const a = (state.db.meta || {})[k] || '', b = patch.meta[k] || ''; if (a !== b) changes.push({ f, from: a || '—', to: b || '—' }); }
   if (meta.changes) changes.push(...meta.changes);
   const entry = { type, types: [type], action, label, changes };
-  if (state.mode === 'local') { localWrite((o) => { o.config = { ...(o.config || {}), ...patch }; }); await writeLog(entry); return; }
+  if (state.mode === 'local') { localWrite((o) => { o.config = { ...(o.config || {}), ...patch }; }); localLog(entry); return; }
   requireFb();
-  await fb.setConfig(patch);
-  await writeLog(entry);
+  await fb.setConfig(patch, logEntry(entry));
 }
 function brief(m) {
   if (!m) return null;
@@ -363,11 +368,11 @@ export async function importBackup(json) {
   const parts = diffFromSeed(data);
   // sao lưu cũ (trước khi đổi điểm Bóng rổ) không có pointsVer → ghi 1 để cài đặt điểm cũ trong file bị bỏ qua
   const config = { meta: data.meta || {}, settings: { pointsVer: 1, ...(data.settings || {}) }, news: data.news || [] };
-  if (state.mode === 'local') { ls.set(LOCAL_KEY, { ...parts, config }); set({ db: compose({ ...parts, config }) }); return; }
+  const n = Object.values(parts).reduce((t, p) => t + Object.keys(p.m || {}).length, 0);
+  const entry = { type: 'data', types: ['data'], action: 'Khôi phục từ file sao lưu', changes: [{ f: 'Dữ liệu', from: '', to: `thay toàn bộ bằng file sao lưu (${n} trận khác lịch gốc, ${(config.news || []).length} thông báo)` }] };
+  if (state.mode === 'local') { ls.set(LOCAL_KEY, { ...parts, config }); set({ db: compose({ ...parts, config }) }); localLog(entry); return; }
   requireFb();
-  await fb.replaceOverrides(parts);
-  await fb.setConfig(config);
-  await writeLog({ type: 'data', types: ['data'], action: 'Khôi phục từ file sao lưu', changes: [] });
+  await fb.replaceOverrides(parts, { config, log: logEntry(entry) });
 }
 // Về lịch gốc: xóa kết quả/đổi lịch nhưng GIỮ danh sách VĐV đã nhập
 function rosterParts() {
@@ -378,18 +383,31 @@ function rosterParts() {
 }
 export async function resetAll() {
   if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.');
-  if (state.mode === 'local') { const keep = rosterParts(); ls.set(LOCAL_KEY, keep); set({ db: compose(keep) }); return; }
+  const entry = { type: 'data', types: ['data'], action: 'Xóa mọi thay đổi, về lịch gốc', changes: [{ f: 'Dữ liệu', from: '', to: 'xóa mọi kết quả / đổi lịch đã nhập, giữ danh sách VĐV' }] };
+  if (state.mode === 'local') { const keep = rosterParts(); ls.set(LOCAL_KEY, keep); set({ db: compose(keep) }); localLog(entry); return; }
   requireFb();
-  await fb.replaceOverrides(rosterParts());
-  await writeLog({ type: 'data', types: ['data'], action: 'Xóa mọi thay đổi, về lịch gốc', changes: [] });
+  await fb.replaceOverrides(rosterParts(), { log: logEntry(entry) });
 }
 export const resetLocal = resetAll;
-export function listLogs(n = 300, before = 0) {
+// n bản ghi mới nhất; tải tiếp: after = bản ghi cuối đã có, offset = số bản ghi đã có (chế độ xem thử)
+export function listLogs(n = 300, after = null, offset = 0) {
   if (!isSuper()) return Promise.reject(new Error('Chỉ quản trị cao nhất được xem nhật ký.'));
-  if (state.mode === 'local') return Promise.resolve(ls.get(LOG_KEY, []).filter((l) => !before || l.at < before).slice(0, n));
-  return fb ? fb.listLogs(n, before) : Promise.resolve([]);
+  if (state.mode === 'local') return Promise.resolve(ls.get(LOG_KEY, []).slice(offset, offset + n));
+  return fb ? fb.listLogs(n, after) : Promise.resolve([]);
 }
 export const listAdmins = () => (fb ? fb.listAdmins() : Promise.resolve([]));
 const scopeTxt = (a) => (a.all ? 'Toàn giải' : Object.keys(a.sports || {}).filter((k) => a.sports[k]).map((k) => (SPORT[k] || {}).name || k).join(', '));
-export const setAdmin = (email, data) => { if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.'); return fb.setAdmin(email, data).then(() => writeLog({ type: 'admin', types: ['admin'], action: 'Cấp quyền', label: email, changes: [{ f: 'Phạm vi', from: '', to: scopeTxt(data) }] })); };
-export const removeAdmin = (email) => { if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.'); return fb.removeAdmin(email).then(() => writeLog({ type: 'admin', types: ['admin'], action: 'Thu hồi quyền', label: email, changes: [] })); };
+export async function setAdmin(email, data) {
+  if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.');
+  requireFb();
+  const old = await fb.getAdmin(email);
+  const changes = [{ f: 'Phạm vi', from: old ? scopeTxt(old) : '', to: scopeTxt(data) }];
+  if ((old ? old.name || '' : '') !== (data.name || '')) changes.push({ f: 'Tên hiển thị', from: (old && old.name) || '', to: data.name || '' });
+  await fb.setAdmin(email, data, logEntry({ type: 'admin', types: ['admin'], action: old ? 'Sửa quyền' : 'Cấp quyền', label: email, changes }));
+}
+export async function removeAdmin(email) {
+  if (!isSuper()) throw new Error('Chỉ quản trị cao nhất.');
+  requireFb();
+  const old = await fb.getAdmin(email);
+  await fb.removeAdmin(email, logEntry({ type: 'admin', types: ['admin'], action: 'Thu hồi quyền', label: email, changes: old ? [{ f: 'Phạm vi', from: scopeTxt(old) + (old.name ? ` (${old.name})` : ''), to: '' }] : [] }));
+}

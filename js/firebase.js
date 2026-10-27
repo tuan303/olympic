@@ -25,8 +25,10 @@ export async function connect(config) {
   } catch (e) {
     db = fs.getFirestore(app);
   }
-  const { doc, onSnapshot, setDoc, serverTimestamp, collection, addDoc, getDocs, getDoc, deleteDoc, query, orderBy, limit, where, writeBatch, FieldPath } = fs;
+  const { doc, onSnapshot, serverTimestamp, collection, getDocs, getDoc, query, orderBy, limit, startAfter, writeBatch, FieldPath } = fs;
   const clean = (o) => JSON.parse(JSON.stringify(o));
+  // ts thêm SAU clean() (JSON làm hỏng serverTimestamp)
+  const addLogTo = (b, log) => { if (log) b.set(doc(collection(db, 'logs')), { ...clean(log), ts: serverTimestamp() }); };
 
   const api = {
     // Nghe các document; cb(tên, dữ liệu|null)
@@ -36,34 +38,47 @@ export async function connect(config) {
         (e) => onErr && onErr(e, n)));
       return () => stops.forEach((f) => f());
     },
+    // Mỗi lần ghi dữ liệu kèm 1 dòng nhật ký trong CÙNG một lô (writeBatch): cùng lưu / cùng bị từ chối,
+    // mất mạng thì cả hai cùng nằm trong hàng đợi — không có thay đổi nào lọt lên máy chủ mà thiếu nhật ký.
+    // ts = giờ máy chủ (luật Firestore kiểm tra); at = giờ máy (để sắp xếp, tương thích bản ghi cũ)
     // Ghi đè 1 trận (kind 'm') hoặc 1 nội dung (kind 'e'); value = null nghĩa là xóa trận
-    async setOverride(docId, kind, id, value) {
+    async setOverride(docId, kind, id, value, log) {
       const data = { [kind]: { [id]: value === null ? null : clean(value) }, rev: serverTimestamp() };
-      await setDoc(doc(db, 'olympic', docId), data, { mergeFields: [new FieldPath(kind, id), 'rev'] });
+      const b = writeBatch(db);
+      b.set(doc(db, 'olympic', docId), data, { mergeFields: [new FieldPath(kind, id), 'rev'] });
+      addLogTo(b, log);
+      await b.commit();
     },
-    async setConfig(patch) {
-      await setDoc(doc(db, 'olympic', 'config'), clean(patch), { merge: true });
+    async setConfig(patch, log) {
+      const b = writeBatch(db);
+      b.set(doc(db, 'olympic', 'config'), clean(patch), { merge: true });
+      addLogTo(b, log);
+      await b.commit();
     },
-    // Ghi hàng loạt (khôi phục sao lưu): parts = { docId: { m: {...}, e: {...} } }
-    async replaceOverrides(parts) {
+    // Ghi hàng loạt (khôi phục sao lưu / về lịch gốc): parts = { docId: { m: {...}, e: {...}, r: {...} } }
+    async replaceOverrides(parts, { config, log } = {}) {
       const b = writeBatch(db);
       for (const id of OVERRIDE_DOCS) {
         const p = parts[id];
         if (p && (Object.keys(p.m || {}).length || Object.keys(p.e || {}).length || Object.keys(p.r || {}).length)) b.set(doc(db, 'olympic', id), clean({ m: p.m || {}, e: p.e || {}, r: p.r || {}, rev: Date.now() }));
         else b.delete(doc(db, 'olympic', id));
       }
+      if (config) b.set(doc(db, 'olympic', 'config'), clean(config), { merge: true });
+      addLogTo(b, log);
       await b.commit();
     },
-    // Nhật ký: ts = giờ máy chủ (luật Firestore bắt buộc), không sửa/xóa được
-    async addLog(entry) {
-      try { await addDoc(collection(db, 'logs'), { ...clean({ ...entry, at: Date.now() }), ts: serverTimestamp() }); return true; }
-      catch (e) { console.warn('[log]', e.message); return false; }
-    },
-    // n bản ghi mới nhất; before = mốc 'at' để tải tiếp các bản ghi cũ hơn
-    async listLogs(n = 150, before = 0) {
-      const q = before ? query(collection(db, 'logs'), where('at', '<', before), orderBy('at', 'desc'), limit(n)) : query(collection(db, 'logs'), orderBy('at', 'desc'), limit(n));
+    // n bản ghi mới nhất; after = bản ghi cuối đã tải (tải tiếp các bản ghi cũ hơn, không sót bản ghi trùng mốc giờ)
+    async listLogs(n = 150, after = null) {
+      const base = [collection(db, 'logs'), orderBy('at', 'desc')];
+      const q = after && after._snap ? query(...base, startAfter(after._snap), limit(n)) : query(...base, limit(n));
       const snap = await getDocs(q);
-      return snap.docs.map((d) => { const x = d.data(); return { ...x, _doc: d.id, srvAt: x.ts && x.ts.toMillis ? x.ts.toMillis() : null }; });
+      return snap.docs.map((d) => {
+        const x = d.data();
+        const o = { ...x, _doc: d.id, srvAt: x.ts && x.ts.toMillis ? x.ts.toMillis() : null };
+        delete o.ts;
+        Object.defineProperty(o, '_snap', { value: d, enumerable: false }); // con trỏ phân trang (không xuất ra CSV)
+        return o;
+      });
     },
     async getAdmin(email) {
       try { const d = await getDoc(doc(db, 'admins', email)); return d.exists() ? d.data() : null; } catch (e) { return null; }
@@ -72,8 +87,8 @@ export async function connect(config) {
       const snap = await getDocs(collection(db, 'admins'));
       return snap.docs.map((d) => ({ email: d.id, ...d.data() }));
     },
-    async setAdmin(email, data) { await setDoc(doc(db, 'admins', email), clean(data)); },
-    async removeAdmin(email) { await deleteDoc(doc(db, 'admins', email)); },
+    async setAdmin(email, data, log) { const b = writeBatch(db); b.set(doc(db, 'admins', email), clean(data)); addLogTo(b, log); await b.commit(); },
+    async removeAdmin(email, log) { const b = writeBatch(db); b.delete(doc(db, 'admins', email)); addLogTo(b, log); await b.commit(); },
   };
 
   // ---------- đăng nhập Microsoft 365 ----------

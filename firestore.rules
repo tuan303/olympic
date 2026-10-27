@@ -58,12 +58,18 @@ service cloud.firestore {
       allow write: if isSuper();
     }
 
-    // Nhật ký thao tác: mọi quản trị viên GHI được (đúng email của mình, giờ máy chủ);
-    // CHỈ quản trị cao nhất ĐỌC được; không ai sửa / xóa
+    // Nhật ký thao tác: mọi quản trị viên GHI được (đúng email của mình, ts = giờ máy chủ);
+    // CHỈ quản trị cao nhất ĐỌC được; không ai sửa / xóa.
+    // Web ghi nhật ký CÙNG một lô với dữ liệu → bản ghi bị từ chối thì thay đổi cũng không được lưu.
+    // (Bản ghi không có ts = tab mở từ trước khi cập nhật web — vẫn nhận để không mất nhật ký.)
     match /logs/{id} {
-      allow create: if (isAdmin() || isSuper())
+      allow create: if (isSuper() || isAdmin())
                     && request.resource.data.by == email()
-                    && request.resource.data.ts == request.time;
+                    && request.resource.data.at is int
+                    && (!('ts' in request.resource.data) || request.resource.data.ts == request.time)
+                    && (!('type' in request.resource.data) || (request.resource.data.type is string && request.resource.data.type.size() <= 20))
+                    && (!('types' in request.resource.data) || request.resource.data.types is list)
+                    && (!('changes' in request.resource.data) || request.resource.data.changes is list);
       allow read: if isSuper();
       allow update, delete: if false;
     }
