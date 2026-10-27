@@ -740,3 +740,19 @@ textarea.inp { height: auto; padding: 10px 12px; resize: vertical; }
 @media (max-width: 960px) { .rule-edit { grid-template-columns: 1fr; } .rule-preview { position: static; max-height: none; } }
 .doc-upd { text-align: right; font-size: 12.5px; color: #8a6400; margin-bottom: 8px; }
 .draw-note { margin: 0 16px 12px; padding: 8px 12px; border-radius: 8px; background: #fff6d6; border: 1px solid #f3dc8a; color: #6b4e00; font-size: 13px; }
+/* ---------- nhật ký thao tác ---------- */
+.log-list .lg { display: grid; grid-template-columns: 120px minmax(0, 1fr) 210px; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--line-2); align-items: start; }
+.log-list .lg:first-child { border-top: 0; }
+.lg-when b { display: block; font-size: 13px; font-variant-numeric: tabular-nums; }
+.lg-when span, .lg-who span { display: block; font-size: 11.5px; color: var(--muted); }
+.lg-who { text-align: right; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.lg-top { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13.5px; }
+.lg-label { font-size: 13px; color: var(--ink-2); margin-top: 3px; overflow-wrap: anywhere; }
+.lg-ch { margin: 6px 0 0; padding: 0 0 0 16px; font-size: 12.5px; color: var(--ink-2); }
+.lg-ch li { margin: 1px 0; overflow-wrap: anywhere; }
+.lg-ch del { color: #a33a4a; text-decoration-thickness: 1px; }
+.lg-ch ins { color: #1f7a35; text-decoration: none; font-weight: 600; }
+.lt { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #eef1f6; color: #4d5a73; white-space: nowrap; }
+.lt-result { background: #e6f4ea; color: #1f7a35; } .lt-schedule { background: #e6efff; color: #1d4ed8; } .lt-add { background: #ede7ff; color: #5b3cc4; }
+.lt-delete { background: #fde8eb; color: #b4232f; } .lt-event { background: #fff3cd; color: #7a5a00; } .lt-admin { background: #ffe8d6; color: #b4430a; } .lt-data { background: #fde8eb; color: #8c1024; }
+@media (max-width: 760px) { .log-list .lg { grid-template-columns: 1fr; gap: 4px; } .lg-who { text-align: left; display: flex; gap: 8px; flex-wrap: wrap; } .lg-when { display: flex; gap: 8px; align-items: baseline; } }

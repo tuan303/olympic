@@ -8,7 +8,7 @@
 //                                    r: { '<mã nội dung>|<lớp>': { list: [{ n, no }] } } (danh sách VĐV đội) }
 //                                (15 document: 5 môn × TH/THCS/THPT — mỗi lần nhập kết quả chỉ gửi lại 1 document nhỏ)
 //    admins/{email}            → { all: true } hoặc { sports: { bongda: true, ... } }
-//    logs/{auto}               → nhật ký thay đổi
+//    logs/{auto}               → nhật ký thay đổi (ai, lúc nào, loại thao tác, trận/nội dung, giá trị trước → sau)
 // ============================================================
 const CDN = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
@@ -25,7 +25,7 @@ export async function connect(config) {
   } catch (e) {
     db = fs.getFirestore(app);
   }
-  const { doc, onSnapshot, setDoc, serverTimestamp, collection, addDoc, getDocs, getDoc, deleteDoc, query, orderBy, limit, writeBatch, FieldPath } = fs;
+  const { doc, onSnapshot, setDoc, serverTimestamp, collection, addDoc, getDocs, getDoc, deleteDoc, query, orderBy, limit, where, writeBatch, FieldPath } = fs;
   const clean = (o) => JSON.parse(JSON.stringify(o));
 
   const api = {
@@ -54,12 +54,16 @@ export async function connect(config) {
       }
       await b.commit();
     },
+    // Nhật ký: ts = giờ máy chủ (luật Firestore bắt buộc), không sửa/xóa được
     async addLog(entry) {
-      try { await addDoc(collection(db, 'logs'), clean({ ...entry, at: Date.now() })); } catch (e) { console.warn('[log]', e.message); }
+      try { await addDoc(collection(db, 'logs'), { ...clean({ ...entry, at: Date.now() }), ts: serverTimestamp() }); return true; }
+      catch (e) { console.warn('[log]', e.message); return false; }
     },
-    async listLogs(n = 150) {
-      const snap = await getDocs(query(collection(db, 'logs'), orderBy('at', 'desc'), limit(n)));
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // n bản ghi mới nhất; before = mốc 'at' để tải tiếp các bản ghi cũ hơn
+    async listLogs(n = 150, before = 0) {
+      const q = before ? query(collection(db, 'logs'), where('at', '<', before), orderBy('at', 'desc'), limit(n)) : query(collection(db, 'logs'), orderBy('at', 'desc'), limit(n));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => { const x = d.data(); return { ...x, _doc: d.id, srvAt: x.ts && x.ts.toMillis ? x.ts.toMillis() : null }; });
     },
     async getAdmin(email) {
       try { const d = await getDoc(doc(db, 'admins', email)); return d.exists() ? d.data() : null; } catch (e) { return null; }
